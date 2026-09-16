@@ -1,0 +1,57 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: '0 6 * * 1' # weekly Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript', 'rust']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Install Rust toolchain (rust)
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Rust (rust)
+        if: matrix.language == 'rust'
+        run: |
+          if cargo metadata --format-version=1 --no-deps --manifest-path server/Cargo.toml 2>/dev/null | grep -q '"packages":\s*\[\]'; then
+            echo "No Rust crates in workspace - skipping build (CodeQL will analyze empty DB)"
+            exit 0
+          fi
+          # Try autobuild first, fallback to cargo build
+          if command -v cargo >/dev/null 2>&1; then
+            cargo build --verbose --manifest-path server/Cargo.toml || echo "cargo build failed - continuing for CodeQL"
+          fi
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{matrix.language}}"
