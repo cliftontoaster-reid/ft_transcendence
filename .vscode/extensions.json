@@ -6,6 +6,7 @@
 		"bradlc.vscode-tailwindcss",
 		"tombi-toml.tombi",
 		"swellaby.vscode-rust-test-adapter",
-		"rust-lang.rust-analyzer"
+		"rust-lang.rust-analyzer",
+		"psioniq.psi-header"
 	]
 }

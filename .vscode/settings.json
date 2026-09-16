@@ -1,5 +1,103 @@
 {
 	"files.associations": {
 		"*.css": "tailwindcss"
-	}
+	},
+	"psi-header.config": {
+		"forceToTop": true,
+		"blankLinesAfter": 1,
+		"license": "AGPL-3.0-or-later",
+		"copyrightHolder": "Clifton Toaster Reid"
+	},
+	"psi-header.changes-tracking": {
+		"isActive": false,
+		"includeGlob": [
+			"server/**/*.rs",
+			"svelte/src/**/*.{ts,js,svelte}",
+			"proto/**/*.proto"
+		],
+		"exclude": ["markdown", "json", "jsonc", "yaml"],
+		"excludeGlob": [
+			"**/.svelte-kit/**",
+			"**/node_modules/**",
+			"**/target/**",
+			"**/paraglide/**",
+			"**/dist/**",
+			"**/*.lock",
+			"**/LICENCE.md"
+		],
+		"autoHeader": "manualSave",
+		"enforceHeader": true
+	},
+	"psi-header.templates": [
+		{
+			"language": "*",
+			"template": [
+				"<<filename>> - <<projectname>>",
+				"Copyright (C) <<year>> <<copyrightholder>>",
+				"",
+				"This program is free software: you can redistribute it and/or modify",
+				"it under the terms of the GNU Affero General Public License as",
+				"published by the Free Software Foundation, either version 3 of the",
+				"License, or (at your option) any later version.",
+				"",
+				"This program is distributed in the hope that it will be useful,",
+				"but WITHOUT ANY WARRANTY; without even the implied warranty of",
+				"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the",
+				"GNU Affero General Public License for more details.",
+				"",
+				"You should have received a copy of the GNU Affero General Public License",
+				"along with this program. If not, see <https://www.gnu.org/licenses/>."
+			]
+		}
+	],
+	"psi-header.lang-config": [
+		{
+			"language": "*",
+			"begin": "/*",
+			"prefix": " * ",
+			"end": " */"
+		},
+		{
+			"language": "rust",
+			"begin": "",
+			"end": "",
+			"prefix": "// "
+		},
+		{
+			"language": "shellscript",
+			"begin": "",
+			"end": "",
+			"prefix": "# "
+		},
+		{
+			"language": "yaml",
+			"begin": "",
+			"end": "",
+			"prefix": "# "
+		},
+		{
+			"language": "dockerfile",
+			"begin": "",
+			"end": "",
+			"prefix": "# "
+		},
+		{
+			"language": "proto",
+			"begin": "/*",
+			"prefix": " * ",
+			"end": " */"
+		},
+		{
+			"language": "typescript",
+			"mapTo": "javascript"
+		},
+		{
+			"language": "svelte",
+			"begin": "<!--",
+			"prefix": "  ",
+			"end": " -->",
+			"forceToTop": true,
+			"blankLinesAfter": 1
+		}
+	]
 }
