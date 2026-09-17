@@ -1,0 +1,43 @@
+{
+	"name": "Ft Transcendence",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "devcontainer",
+	"workspaceFolder": "/workspace",
+	"runServices": ["devcontainer", "postgres"],
+	"shutdownAction": "stopCompose",
+
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest"
+		}
+	},
+
+	"forwardPorts": [5173, 4173, 3000, "postgres:5432"],
+	"portsAttributes": {
+		"5173": { "label": "Vite dev server (npm run dev)", "onAutoForward": "notify" },
+		"4173": { "label": "Vite preview (Playwright webServer)", "onAutoForward": "notify" },
+		"3000": { "label": "SvelteKit adapter-node", "onAutoForward": "notify" },
+		"postgres:5432": { "label": "PostgreSQL", "onAutoForward": "notify" }
+	},
+
+	"remoteUser": "vscode",
+	"containerUser": "vscode",
+
+	"postCreateCommand": "cd svelte && bun install --frozen-lockfile",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"svelte.svelte-vscode",
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"bradlc.vscode-tailwindcss",
+				"tombi-toml.tombi",
+				"rust-lang.rust-analyzer",
+				"swellaby.vscode-rust-test-adapter",
+				"psioniq.psi-header",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

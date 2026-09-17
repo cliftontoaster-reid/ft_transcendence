@@ -14,6 +14,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+
+FROM bufbuild/buf:latest AS buf-build
+
+WORKDIR /workspace
+
+COPY ./proto .
+RUN buf generate --template '{"version":"v2","plugins":[{"local":"buf.build/bufbuild/es:v2.15.0","out":"gen"}]}'
+
+
 FROM oven/bun:alpine AS build
 
 WORKDIR /workspace
@@ -21,10 +30,10 @@ WORKDIR /workspace
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-COPY . .
+COPY ./svelte .
+COPY --from=buf-build /workspace/gen /svelte/src/lib/proto
 
 RUN bun run build
-
 
 FROM oven/bun:alpine AS production
 

@@ -1,0 +1,49 @@
+services:
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        BUN_VERSION: latest
+        RUSTUP_TOOLCHAIN: stable
+    volumes:
+      # Bind-mount the repo so edits are shared with the host.
+      - ..:/workspace:cached
+      # Persist the docker-in-docker engine data.
+      - dind-storage:/var/lib/docker
+    environment:
+      # Connection string the app in the dev container should use to reach PostgreSQL.
+      DATABASE_URL: postgres://${POSTGRES_USER:-transcendence}:${POSTGRES_PASSWORD:-transcendence}@postgres:5432/${POSTGRES_DB:-transcendence}
+    cap_add:
+      - SYS_PTRACE # required for ptrace-based debuggers like C++, Go, and Rust
+    security_opt:
+      - seccomp:unconfined # required for ptrace-based debuggers
+    privileged: true # required for docker-in-docker
+    # Overrides default command so things don't shut down after the process ends.
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-transcendence}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-transcendence}
+      POSTGRES_DB: ${POSTGRES_DB:-transcendence}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-transcendence} -d ${POSTGRES_DB:-transcendence}'
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  dind-storage:
