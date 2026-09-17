@@ -1,0 +1,4 @@
+version: v2
+plugins:
+  - remote: buf.build/bufbuild/es:v2.15.0
+    out: svelte/src/lib/proto
