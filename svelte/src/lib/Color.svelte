@@ -18,11 +18,11 @@
   }
 
   .color-content {
-    width: 98%;
+    width: 95%;
     height: 140px;
     box-sizing: border-box;
     border-radius: 12px;
-    color: white;
+    color: negative;
 
     display: flex;
     align-items: center;
