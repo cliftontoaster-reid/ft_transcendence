@@ -2,26 +2,30 @@
   let { color, text }: { color: string; text: string } = $props();
 </script>
 
-<div class="color-card" style={`background-color: ${color}`}>
-  <h2>{text}</h2>
-  <p>{color}</p>
+<div class="color-card">
+  <div class="color-content" style={`background-color: ${color}`}>
+    {text}
+  </div>
 </div>
 
 <style>
   .color-card {
+    width: 100%;
     min-height: 150px;
-    margin: 0px;
-    padding: 20px;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
+    margin: 0;
+    box-sizing: border-box;
+    background: transparent;
   }
 
-  h2,
-  p {
-    margin: 5px;
+  .color-content {
+    width: 98%;
+    height: 140px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>

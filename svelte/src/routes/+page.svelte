@@ -99,5 +99,6 @@ const colors = [
     width: 1500px;
     max-width: 1500px;
     margin: 50px auto 0;
+    background: transparent;
   }
 </style>
