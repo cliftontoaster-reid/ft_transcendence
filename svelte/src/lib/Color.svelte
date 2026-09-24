@@ -9,8 +9,8 @@
 
 <style>
   .color-card {
-    min-height: 180px;
-    margin: 10px;
+    min-height: 150px;
+    margin: 0px;
     padding: 20px;
     border-radius: 12px;
     display: flex;

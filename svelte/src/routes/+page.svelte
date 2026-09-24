@@ -28,82 +28,25 @@
   }
 
 const colors = [
-  {
-    color: '#ef4444',
-    text: 'Red'
-  },
-  {
-    color: '#3b82f6',
-    text: 'Blue'
-  },
-  {
-    color: '#22c55e',
-    text: 'Green'
-  },
-  {
-    color: '#eab308',
-    text: 'Yellow'
-  },
-  {
-    color: '#f97316',
-    text: 'Orange'
-  },
-  {
-    color: '#a855f7',
-    text: 'Purple'
-  },
-  {
-    color: '#ec4899',
-    text: 'Pink'
-  },
-  {
-    color: '#06b6d4',
-    text: 'Cyan'
-  },
-  {
-    color: '#14b8a6',
-    text: 'Teal'
-  },
-  {
-    color: '#84cc16',
-    text: 'Lime'
-  },
-  {
-    color: '#6366f1',
-    text: 'Indigo'
-  },
-  {
-    color: '#8b5cf6',
-    text: 'Violet'
-  },
-  {
-    color: '#0ea5e9',
-    text: 'Sky Blue'
-  },
-  {
-    color: '#64748b',
-    text: 'Slate Gray'
-  },
-  {
-    color: '#78716c',
-    text: 'Stone Gray'
-  },
-  {
-    color: '#92400e',
-    text: 'Brown'
-  },
-  {
-    color: '#f8fafc',
-    text: 'White'
-  },
-  {
-    color: '#1e293b',
-    text: 'Navy'
-  },
-  {
-    color: '#111827',
-    text: 'Black'
-  }
+  {color: '#ef4444', text: 'Red'},
+  {color: '#3b82f6', text: 'Blue'},
+  {color: '#22c55e', text: 'Green'},
+  {color: '#eab308', text: 'Yellow'},
+  {color: '#f97316', text: 'Orange'},
+  {color: '#a855f7', text: 'Purple'},
+  {color: '#ec4899', text: 'Pink'},
+  {color: '#06b6d4', text: 'Cyan'},
+  {color: '#14b8a6', text: 'Teal'},
+  {color: '#84cc16', text: 'Lime'},
+  {color: '#6366f1', text: 'Indigo'},
+  {color: '#8b5cf6', text: 'Violet'},
+  {color: '#0ea5e9', text: 'Sky Blue'},
+  {color: '#64748b', text: 'Slate Gray'},
+  {color: '#78716c', text: 'Stone Gray'},
+  {color: '#92400e', text: 'Brown'},
+  {color: '#f8fafc', text: 'White'},
+  {color: '#1e293b', text: 'Navy'},
+  {color: '#111827', text: 'Black'}
 ];
 
 </script>
@@ -121,7 +64,7 @@ const colors = [
 
   <div class="carousel-container">
     {#if browser}
-      <Carousel particlesToShow={4} particlesToScroll={4}>
+      <Carousel particlesToShow={7} particlesToScroll={4}>
         {#each colors as { color, text } (color)}
           <Color {color} {text} />
         {/each}
@@ -134,7 +77,7 @@ const colors = [
   :global(body) {
     margin: 0;
     min-height: 100vh;
-    background: linear-gradient(to bottom, red 0%, red 0%, black 10%);
+    background: linear-gradient(to bottom, black 0%, black 5%, red 8%, red 12%, black 15%);
     color: white;
     font-family: Arial, sans-serif;
   }
@@ -153,8 +96,8 @@ const colors = [
   }
 
   .carousel-container {
-    width: 100%;
-    max-width: 900px;
+    width: 1500px;
+    max-width: 1500px;
     margin: 50px auto 0;
   }
 </style>
