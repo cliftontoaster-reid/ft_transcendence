@@ -81,26 +81,12 @@
   }
 
   .carousel-container {
-    width: 1500px;
-    max-width: 100%;
-    margin: 50px auto 0;
-    background: transparent;
-    padding: 30px 20px;
-    box-sizing: border-box;
-    background: transparent;
-    overflow: visible;
-  }
+  width: 1500px;
+  max-width: 100%;
+  margin: 50px auto 0;
+  padding: 30px 20px;
+  box-sizing: border-box;
+  background: transparent;
+}
 
-  .carousel-container :global(.carousel),
-  .carousel-container :global(.carousel__container),
-  .carousel-container :global(.carousel__track),
-  .carousel-container :global(.carousel__viewport),
-  .carousel-container :global(.slick-list),
-  .carousel-container :global(.slick-track) {
-    overflow: visible !important;
-  }
-
-  .carousel-container :global(*) {
-    overflow: visible;
-  }  
 </style>

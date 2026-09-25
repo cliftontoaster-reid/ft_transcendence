@@ -23,36 +23,24 @@
     class="color-content"
     style={`background-color: ${color}`}
   >
-    {text}
+    <span>{text}</span>
   </div>
 </a>
 
 <style>
   .color-card {
     display: block;
-    position: relative;
     width: 100%;
-    min-height: 150px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
+    height: 150px;
+    padding: 5px;
+    box-sizing: border-box;
     color: inherit;
     text-decoration: none;
-    cursor: pointer;
-    overflow: visible;
-    z-index: 1;
-  }
-
-  .color-card:hover {
-    z-index: 100;
   }
 
   .color-content {
-    position: relative;
-    width: 98%;
+    width: 100%;
     height: 140px;
-    box-sizing: border-box;
     border-radius: 12px;
     color: white;
 
@@ -60,14 +48,31 @@
     align-items: center;
     justify-content: center;
 
-    transform-origin: center;
+    box-sizing: border-box;
+    transform: scale(1);
     transition:
       transform 0.2s ease,
-      box-shadow 0.2s ease;
+      box-shadow 0.2s ease,
+      filter 0.2s ease;
+  }
+
+  .color-content span {
+    transition: transform 0.2s ease;
   }
 
   .color-card:hover .color-content {
+    /*
+     * This stays inside the carousel's available area.
+     * The shadow and brightness create the expanded appearance
+     * without being clipped.
+     */
+    box-shadow:
+      0 0 0 4px rgb(255 255 255 / 25%),
+      0 12px 25px rgb(0 0 0 / 55%);
+    filter: brightness(1.15);
+  }
+
+  .color-card:hover .color-content span {
     transform: scale(1.08);
-    box-shadow: 0 8px 20px rgb(0 0 0 / 35%);
   }
 </style>
