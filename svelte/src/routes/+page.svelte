@@ -27,6 +27,11 @@
     title = 'You clicked the button!';
   }
 
+  function handleColorClick(text: string): void {
+  title = `You clicked ${text}`;
+  }
+
+
 const colors = [
   {color: '#ef4444', text: 'Red'},
   {color: '#3b82f6', text: 'Blue'},
@@ -66,7 +71,7 @@ const colors = [
     {#if browser}
       <Carousel particlesToShow={7} particlesToScroll={4}>
         {#each colors as { color, text } (color)}
-          <Color {color} {text} />
+          <Color {color} {text} onclick={() => handleColorClick(text)} />
         {/each}
       </Carousel>
     {/if}
