@@ -15,51 +15,18 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program. If not, see <https://www.gnu.org/licenses/>.
  -->
-  <script lang="ts">
+
+ <script lang="ts">
   import { browser } from '$app/environment';
   import Carousel from 'svelte-carousel';
   import Color from '$lib/Color.svelte';
+  import { colors } from '$lib/colors';
 
   let title = $state('Hello!');
 
   function handleClick(): void {
     title = 'You clicked the button!';
   }
-
-  function handleColorClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-    const colorElement = target.closest<HTMLElement>('[data-color-text]');
-
-    if (!colorElement) return;
-
-    const text = colorElement.dataset.colorText;
-
-    if (text) {
-      title = `You clicked ${text}`;
-    }
-  }
-
-  const colors = [
-    { color: '#ef4444', text: 'Red' },
-    { color: '#3b82f6', text: 'Blue' },
-    { color: '#22c55e', text: 'Green' },
-    { color: '#eab308', text: 'Yellow' },
-    { color: '#f97316', text: 'Orange' },
-    { color: '#a855f7', text: 'Purple' },
-    { color: '#ec4899', text: 'Pink' },
-    { color: '#06b6d4', text: 'Cyan' },
-    { color: '#14b8a6', text: 'Teal' },
-    { color: '#84cc16', text: 'Lime' },
-    { color: '#6366f1', text: 'Indigo' },
-    { color: '#8b5cf6', text: 'Violet' },
-    { color: '#0ea5e9', text: 'Sky Blue' },
-    { color: '#64748b', text: 'Slate Gray' },
-    { color: '#78716c', text: 'Stone Gray' },
-    { color: '#92400e', text: 'Brown' },
-    { color: '#f8fafc', text: 'White' },
-    { color: '#1e293b', text: 'Navy' },
-    { color: '#111827', text: 'Black' }
-  ];
 </script>
 
 <svelte:head>
@@ -73,15 +40,11 @@
     Click me
   </button>
 
-  <div
-  class="carousel-container"
-  role="presentation"
-  onclick={handleColorClick}
->
+  <div class="carousel-container">
     {#if browser}
       <Carousel particlesToShow={7} particlesToScroll={4}>
-        {#each colors as { color, text } (color)}
-          <Color {color} {text} />
+        {#each colors as color (color.slug)}
+          <Color {...color} />
         {/each}
       </Carousel>
     {/if}
@@ -122,5 +85,22 @@
     max-width: 100%;
     margin: 50px auto 0;
     background: transparent;
+    padding: 30px 20px;
+    box-sizing: border-box;
+    background: transparent;
+    overflow: visible;
   }
+
+  .carousel-container :global(.carousel),
+  .carousel-container :global(.carousel__container),
+  .carousel-container :global(.carousel__track),
+  .carousel-container :global(.carousel__viewport),
+  .carousel-container :global(.slick-list),
+  .carousel-container :global(.slick-track) {
+    overflow: visible !important;
+  }
+
+  .carousel-container :global(*) {
+    overflow: visible;
+  }  
 </style>
