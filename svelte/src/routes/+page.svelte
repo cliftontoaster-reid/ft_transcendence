@@ -15,8 +15,7 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program. If not, see <https://www.gnu.org/licenses/>.
  -->
-
- <script lang="ts">
+  <script lang="ts">
   import { browser } from '$app/environment';
   import Carousel from 'svelte-carousel';
   import Color from '$lib/Color.svelte';
@@ -27,33 +26,40 @@
     title = 'You clicked the button!';
   }
 
-  function handleColorClick(text: string): void {
-  title = `You clicked ${text}`;
+  function handleColorClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const colorElement = target.closest<HTMLElement>('[data-color-text]');
+
+    if (!colorElement) return;
+
+    const text = colorElement.dataset.colorText;
+
+    if (text) {
+      title = `You clicked ${text}`;
+    }
   }
 
-
-const colors = [
-  {color: '#ef4444', text: 'Red'},
-  {color: '#3b82f6', text: 'Blue'},
-  {color: '#22c55e', text: 'Green'},
-  {color: '#eab308', text: 'Yellow'},
-  {color: '#f97316', text: 'Orange'},
-  {color: '#a855f7', text: 'Purple'},
-  {color: '#ec4899', text: 'Pink'},
-  {color: '#06b6d4', text: 'Cyan'},
-  {color: '#14b8a6', text: 'Teal'},
-  {color: '#84cc16', text: 'Lime'},
-  {color: '#6366f1', text: 'Indigo'},
-  {color: '#8b5cf6', text: 'Violet'},
-  {color: '#0ea5e9', text: 'Sky Blue'},
-  {color: '#64748b', text: 'Slate Gray'},
-  {color: '#78716c', text: 'Stone Gray'},
-  {color: '#92400e', text: 'Brown'},
-  {color: '#f8fafc', text: 'White'},
-  {color: '#1e293b', text: 'Navy'},
-  {color: '#111827', text: 'Black'}
-];
-
+  const colors = [
+    { color: '#ef4444', text: 'Red' },
+    { color: '#3b82f6', text: 'Blue' },
+    { color: '#22c55e', text: 'Green' },
+    { color: '#eab308', text: 'Yellow' },
+    { color: '#f97316', text: 'Orange' },
+    { color: '#a855f7', text: 'Purple' },
+    { color: '#ec4899', text: 'Pink' },
+    { color: '#06b6d4', text: 'Cyan' },
+    { color: '#14b8a6', text: 'Teal' },
+    { color: '#84cc16', text: 'Lime' },
+    { color: '#6366f1', text: 'Indigo' },
+    { color: '#8b5cf6', text: 'Violet' },
+    { color: '#0ea5e9', text: 'Sky Blue' },
+    { color: '#64748b', text: 'Slate Gray' },
+    { color: '#78716c', text: 'Stone Gray' },
+    { color: '#92400e', text: 'Brown' },
+    { color: '#f8fafc', text: 'White' },
+    { color: '#1e293b', text: 'Navy' },
+    { color: '#111827', text: 'Black' }
+  ];
 </script>
 
 <svelte:head>
@@ -67,11 +73,15 @@ const colors = [
     Click me
   </button>
 
-  <div class="carousel-container">
+  <div
+  class="carousel-container"
+  role="presentation"
+  onclick={handleColorClick}
+>
     {#if browser}
       <Carousel particlesToShow={7} particlesToScroll={4}>
         {#each colors as { color, text } (color)}
-          <Color {color} {text} onclick={() => handleColorClick(text)} />
+          <Color {color} {text} />
         {/each}
       </Carousel>
     {/if}
@@ -82,7 +92,14 @@ const colors = [
   :global(body) {
     margin: 0;
     min-height: 100vh;
-    background: linear-gradient(to bottom, black 0%, black 5%, red 8%, red 12%, black 15%);
+    background: linear-gradient(
+      to bottom,
+      black 0%,
+      black 5%,
+      red 8%,
+      red 12%,
+      black 15%
+    );
     color: white;
     font-family: Arial, sans-serif;
   }
@@ -102,7 +119,7 @@ const colors = [
 
   .carousel-container {
     width: 1500px;
-    max-width: 1500px;
+    max-width: 100%;
     margin: 50px auto 0;
     background: transparent;
   }
