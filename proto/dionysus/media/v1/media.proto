@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package dionysus.media.v1;
+
+import "dionysus/common/v1/asset.proto";
+import "dionysus/media/v1/credit.proto";
+import "dionysus/media/v1/person.proto";
+
+message MediaID {
+  dionysus.common.v1.UUID value = 1;
+}
+
+message Media {
+  MediaID id = 1;
+
+  string title = 2;
+  string description = 3;
+  repeated string tags = 4;
+
+  repeated MovieCredit credits = 5;
+  repeated Person people = 6;
+}
