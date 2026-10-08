@@ -197,7 +197,9 @@ mod tests {
 
   #[tokio::test]
   async fn stores_login_transaction_in_redis_with_ttl() {
-    let redis = redis::Client::open("redis://127.0.0.1:6379/").unwrap();
+    let redis_url =
+      std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/".to_string());
+    let redis = redis::Client::open(redis_url).unwrap();
     let transaction = test_transaction();
     let key = format!(
       "{LOGIN_KEY_PREFIX}{}",
