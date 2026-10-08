@@ -1,0 +1,11 @@
+DROP TABLE my_list;
+DROP TABLE watch_history;
+DROP TABLE watch_progress;
+DROP TABLE sessions;
+DROP INDEX viewer_profiles_one_default_idx;
+DROP TABLE viewer_profiles;
+DROP TABLE role_permissions;
+DROP TABLE user_roles;
+DROP TABLE permissions;
+DROP TABLE roles;
+DROP TABLE oidc_identities;
