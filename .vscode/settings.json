@@ -1,7 +1,4 @@
 {
-	"files.associations": {
-		"*.css": "tailwindcss"
-	},
 	"psi-header.config": {
 		"forceToTop": true,
 		"blankLinesAfter": 1,

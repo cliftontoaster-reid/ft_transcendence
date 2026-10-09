@@ -21,7 +21,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
-	import './layout.css';
+	import './layout.scss';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
