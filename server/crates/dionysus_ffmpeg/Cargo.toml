@@ -1,0 +1,19 @@
+[package]
+name = "dionysus_ffmpeg"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4"
+prost = "0.14.4"
+prost-types = "0.14.4"
+rust_ffmpeg = "1.0.0"
+tempfile = "3"
+tokio = { version = "1", features = ["full"] }
+tonic = "0.14.6"
+tonic-prost = "0.14.6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[build-dependencies]
+tonic-prost-build = "0.14.6"

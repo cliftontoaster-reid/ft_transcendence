@@ -1,0 +1,21 @@
+[package]
+name = "dionysus_oidc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+base64 = "0.22"
+rocket = "0.5.1"
+redis = { version = "0.32", features = ["tokio-comp"] }
+serde_json = "1"
+sha2 = "0.10"
+openidconnect = "4"
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["rt", "macros"] }
+thiserror = "2"
+toml = "1.1.7"
+url = "2"

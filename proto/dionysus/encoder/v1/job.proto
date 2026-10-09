@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package dionysus.encoder.v1;
+
+import "dionysus/common/v1/asset.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/datetime.proto";
+
+enum VideoCodec {
+  VIDEO_CODEC_UNSPECIFIED = 0;
+
+  // Direct Stream Passthrough
+  VIDEO_CODEC_COPY = 1;
+
+  // Standard HLS / DASH Delivery
+  VIDEO_CODEC_H264 = 2; // AVC - Universal baseline
+  VIDEO_CODEC_H265 = 3; // HEVC - 4K, HDR10, Dolby Vision
+  VIDEO_CODEC_VP9 = 4; // VP9 - DASH WebM & Android devices
+  VIDEO_CODEC_AV1 = 5; // AV1 - Next-gen high-efficiency tier
+
+  // Legacy & Next-Gen Standard Tracks
+  VIDEO_CODEC_VP8 = 6; // VP8 (FFmpeg: vp8_vaapi) - Legacy fallback
+  VIDEO_CODEC_VVC = 7; // H.266 / VVC - Future ultra-low bandwidth standard
+
+  // Trick-Play / Scrubbing Tracks
+  VIDEO_CODEC_MJPEG = 8; // Motion JPEG (FFmpeg: mjpeg_vaapi) - Tile/thumbnail generation
+}
+
+enum AudioCodec {
+  AUDIO_CODEC_UNSPECIFIED = 0;
+
+  // Standard Lossy
+  AUDIO_CODEC_AAC = 1; // Universal default (LC-AAC, HE-AAC)
+  AUDIO_CODEC_AC3 = 2; // Dolby Digital (Legacy 5.1)
+  AUDIO_CODEC_EAC3 = 3; // Dolby Digital Plus (Industry standard for streaming 5.1 & Atmos)
+  AUDIO_CODEC_OPUS = 4; // Modern, low-latency, highly efficient (Web, AV1 streams, Mobile)
+  AUDIO_CODEC_VORBIS = 5; // Open-source legacy fallback (WebM)
+
+  // Spatial / Next-Gen Surround
+  AUDIO_CODEC_AC4 = 6; // Dolby AC-4 (Next-gen mobile/broadcast spatial audio)
+  AUDIO_CODEC_DTS = 7; // DTS Digital Surround
+  AUDIO_CODEC_DTS_HD = 8; // DTS-HD / DTS:X (IMAX Enhanced streaming)
+  AUDIO_CODEC_MPEG_H = 9; // MPEG-H 3D Audio (Open spatial audio standard)
+
+  // Lossless / High Fidelity
+  AUDIO_CODEC_FLAC = 10; // Open lossless (Hi-Fi audio streams)
+  AUDIO_CODEC_PCM = 11; // Uncompressed / LPCM (Internal processing or web fallbacks)
+
+  // Legacy
+  AUDIO_CODEC_MP3 = 12; // Backward compatibility
+}
+
+enum HardwareDriver {
+  HARDWARE_DRIVER_UNSPECIFIED = 0;
+
+  HARDWARE_DRIVER_VAAPI = 1;
+  HARDWARE_DRIVER_VULKAN = 2;
+
+  HARDWARE_DRIVER_NVENC = 3;
+  HARDWARE_DRIVER_AMF = 4;
+}
+
+enum Resolution {
+  RESOLUTION_UNSPECIFIED = 0;
+
+  // Example in 16:9 ratio: 427x240
+  RESOLUTION_240 = 1;
+  // Example in 16:9 ratio: 640x360
+  RESOLUTION_360 = 2;
+  // Example in 16:9 ratio: 854x480
+  RESOLUTION_480 = 3;
+  // Example in 16:9 ratio: 1280x720
+  RESOLUTION_720 = 4;
+  // Example in 16:9 ratio: 1920x1080
+  RESOLUTION_1080 = 5;
+  // Example in 16:9 ratio: 2560x1440
+  RESOLUTION_1440 = 6;
+  // Example in 16:9 ratio: 3840x2160
+  RESOLUTION_2160 = 7;
+  // Example in 16:9 ratio: 7680x4320
+  RESOLUTION_4320 = 8;
+}
+
+enum Filter {
+  FILTER_UNSPECIFIED = 0;
+
+  FILTER_FAST_BILINEAR = 1;
+  FILTER_BILINEAR = 2;
+  FILTER_BICUBIC = 3; // Default downscaling above/equal to 0.75
+  FILTER_AREA = 4; // Default downscaling bellow 0.75
+  FILTER_GAUSSIAN = 5;
+  FILTER_SINC = 6;
+  FILTER_LANCZOS = 7;
+  FILTER_SPLINE = 8;
+}
+
+message JobID {
+  dionysus.common.v1.UUID value = 1; // UUIDv5
+}
+
+// A single-track video segment extraction job.
+message VideoJob {
+  JobID id = 1;
+
+  // Source file on disk: video-only, or muxed (audio is ignored).
+  string path = 2;
+
+  optional string hardware_accelerator = 3;
+  optional HardwareDriver hardware = 4;
+
+  optional Resolution rescaling_resolution = 5;
+  optional Filter rescaling_filter = 6;
+
+  oneof video_codec {
+    VideoCodec known_video_codec = 7;
+    string custom_video_codec = 8;
+  }
+  RateControl video_bitrate = 9;
+
+  google.protobuf.Timestamp start = 10;
+  google.protobuf.Timestamp end = 11;
+}
+
+// A single-track audio segment extraction job.
+message AudioJob {
+  JobID id = 1;
+
+  // Source file on disk: audio-only, or muxed (video is ignored).
+  string path = 2;
+
+  oneof audio_codec {
+    AudioCodec known_audio_codec = 3;
+    string custom_audio_codec = 4;
+  }
+  RateControl audio_bitrate = 5;
+
+  google.protobuf.Timestamp start = 6;
+  google.protobuf.Timestamp end = 7;
+}
+
+message RateControl {
+  enum Mode {
+    MODE_UNSPECIFIED = 0;
+
+    MODE_CBR = 1;
+    MODE_VBR = 2;
+    MODE_QVBR = 3;
+  }
+
+  Mode mode = 1;
+
+  // Bits per second.
+  uint32 target_bitrate = 2;
+  // Bits per second.
+  uint32 min_bitrate = 3;
+  // Bits per second.
+  uint32 max_bitrate = 4;
+
+  // Encoder-specific quality scale.
+  uint32 cq = 5;
+}
+
+message JobResult {
+  bytes data = 1;
+
+  string codec_used = 2;
+
+  bool cached = 3;
+  google.type.DateTime created_at = 4;
+}
+
+message SegmentVideoRequest {
+  VideoJob info = 1;
+}
+
+message SegmentVideoResponse {
+  JobResult result = 1;
+}
+
+message SegmentAudioRequest {
+  AudioJob info = 1;
+}
+
+message SegmentAudioResponse {
+  JobResult result = 1;
+}
+
+service JobService {
+  rpc SegmentVideo(SegmentVideoRequest) returns (SegmentVideoResponse);
+  rpc SegmentAudio(SegmentAudioRequest) returns (SegmentAudioResponse);
+}
