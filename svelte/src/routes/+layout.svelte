@@ -24,6 +24,8 @@
   import './layout.css';
   import favicon from '$lib/assets/favicon.svg';
 
+
+
   let { children } = $props();
 </script>
 
@@ -31,23 +33,29 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<!-- 1. BARRE DE NAVIGATION COMMUNE (LOGO + MENU) -->
+<!-- Barre de navigation -->
 <header class="site-header">
   <nav class="nav-container">
     <a href="/" class="logo">Dyonisus</a>
     <div class="nav-links">
-      <a href="/">Accueil</a>
-      <a href="/watch_room">Watch Room</a>
+      <a href="/" class="nav-item">
+        <span>Accueil</span>
+      </a>
+      <a href="/movies" class="nav-item">
+        <span>Films</span>
+      </a>
+      <a href="/watch_room" class="nav-item">Watch Room</a>
+      <a href="/profile" class="nav-item">
+        <span>Profil</span>
+      </a>
     </div>
   </nav>
 </header>
 
-<!-- 2. LE CONTENU DE TES PAGES S'INSERE ICI -->
 <main class="site-main">
   {@render children()}
 </main>
 
-<!-- 3. PIED DE PAGE COMMUN (OPTIONNEL) -->
 <footer class="site-footer">
   <p>© 2026 - Tous droits réservés</p>
 </footer>
@@ -59,7 +67,6 @@
 </div>
 
 <style>
-  /* Styles de base pour la Navbar */
   .site-header {
     position: relative;
     top: 0;
@@ -89,6 +96,7 @@
   .nav-links {
     display: flex;
     gap: 1.5rem;
+    align-items: center;
   }
 
   .nav-links a {
@@ -98,14 +106,26 @@
     transition: opacity 0.2s;
   }
 
+  .nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
   .nav-links a:hover {
     opacity: 0.75;
   }
 
+  /* Contrôle de la taille et de la couleur des icônes de la librairie */
+  :global(.icon) {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+  }
+
   .site-main {
     min-height: 100vh;
-    /* Un peu de padding-top pour éviter que le contenu ne passe sous la Navbar fixe */
-    padding-top: 5rem; 
+    padding-top: 2rem; 
   }
 
   .site-footer {

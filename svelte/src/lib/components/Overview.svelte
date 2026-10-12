@@ -52,12 +52,14 @@
 
 <!-- Modale d'informations (More infos) -->
 {#if isModalOpen}
-  <div class="modal-backdrop" onclick={() => isModalOpen = false} role="presentation">
-    <div class="modal-card" onclick={(e) => e.stopPropagation()} role="dialog">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="modal-backdrop" onclick={() => isModalOpen = false}>
+    <dialog open class="modal-card" onclick={(e) => e.stopPropagation()}>
       <button class="close-btn" onclick={() => isModalOpen = false}>&times;</button>
       <h2>{title}</h2>
       <p>{description}</p>
-    </div>
+    </dialog>
   </div>
 {/if}
 
