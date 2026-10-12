@@ -13,30 +13,37 @@
 
   const colorUrl = $derived(resolve(`/colors/${slug}`));
 
+  let startTime = 0;
   let startX = 0;
   let startY = 0;
   let isDragging = false;
 
   function handlePointerDown(event: PointerEvent) {
+    startTime = Date.now();
     startX = event.clientX;
     startY = event.clientY;
     isDragging = false;
   }
 
   function handlePointerMove(event: PointerEvent) {
-    // If the pointer moves more than 5 pixels, consider it a drag/swipe
     const moveX = Math.abs(event.clientX - startX);
     const moveY = Math.abs(event.clientY - startY);
-    if (moveX > 5 || moveY > 5) {
+    
+    if (moveX > 15 || moveY > 15) {
       isDragging = true;
     }
   }
 
   function handleClick(event: MouseEvent) {
-    // If it was a drag, block the link navigation entirely
-    if (isDragging) {
+    const elapsedTime = Date.now() - startTime;
+
+    // Only block click if it was an intentional long drag/swipe
+    if (isDragging && elapsedTime > 250) {
       event.preventDefault();
+      event.stopPropagation();
     }
+    
+    isDragging = false;
   }
 </script>
 
@@ -67,7 +74,6 @@
     text-decoration: none;
     -webkit-user-select: none;
     user-select: none;
-    /* Prevents default browser touch actions from acting weirdly */
     touch-action: pan-y; 
   }
 
