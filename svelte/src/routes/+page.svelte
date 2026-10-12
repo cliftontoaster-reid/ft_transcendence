@@ -1,22 +1,4 @@
-<!--
-  +page.svelte - svelte
-  Copyright (C) 2026 Clifton Toaster Reid
-  
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of the
-  License, or (at your option) any later version.
-  
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU Affero General Public License for more details.
-  
-  You should have received a copy of the GNU Affero General Public License
-  along with this program. If not, see <https://www.gnu.org/licenses/>.
- -->
-
- <script lang="ts">
+<script lang="ts">
   import { browser } from '$app/environment';
   import Carousel from 'svelte-carousel';
   import Color from '$lib/Color.svelte';
@@ -24,10 +6,23 @@
 
   let title = $state('Hello!');
 
+  let innerWidth = $state(browser ? window.innerWidth : 1200);
+
+  let particlesToShow = $derived.by(() => {
+    if (innerWidth < 480) return 1;
+    if (innerWidth < 768) return 3;
+    if (innerWidth < 1024) return 4;
+    return 7;
+  });
+
+  let particlesToScroll = $derived(Math.max(1, Math.floor(particlesToShow)));
+
   function handleClick(): void {
     title = 'You clicked the button!';
   }
 </script>
+
+<svelte:window bind:innerWidth />
 
 <svelte:head>
   <title>Gradient Background</title>
@@ -42,11 +37,13 @@
 
   <div class="carousel-container">
     {#if browser}
-      <Carousel particlesToShow={7} particlesToScroll={4}>
+      {#key particlesToShow}
+      <Carousel {particlesToShow} {particlesToScroll} dots={false} swiping={true} arrows={false}>
         {#each colors as color (color.slug)}
           <Color {...color} />
         {/each}
       </Carousel>
+      {/key}
     {/if}
   </div>
 </main>
@@ -81,12 +78,11 @@
   }
 
   .carousel-container {
-  width: 1500px;
-  max-width: 100%;
-  margin: 50px auto 0;
-  padding: 30px 20px;
-  box-sizing: border-box;
-  background: transparent;
-}
-
+    width: 100%;
+    max-width: 1500px;
+    margin: 50px auto 0;
+    padding: 30px 20px;
+    box-sizing: border-box;
+    background: transparent;
+  }
 </style>
