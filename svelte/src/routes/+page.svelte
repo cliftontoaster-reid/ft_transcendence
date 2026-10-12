@@ -18,6 +18,7 @@
 
  <script>
   import Overview from '$lib/components/Overview.svelte';
+  import Overview from '$lib/components/MiniChat.svelte';
 </script>
 
 <section class="overview-section">
@@ -27,6 +28,8 @@
     playHref="/watch_room"
   />
 </section>
+
+<MiniChat />
 
 <style>
   .overview-section {

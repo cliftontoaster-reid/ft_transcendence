@@ -15,7 +15,7 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program. If not, see <https://www.gnu.org/licenses/>.
  -->
-
+  
 <script lang="ts">
   import type { Pathname } from '$app/types';
   import { resolve } from '$app/paths';
@@ -24,7 +24,8 @@
   import './layout.css';
   import favicon from '$lib/assets/favicon.svg';
 
-
+  // Importation des icônes de ta librairie
+  import { Home, Movie, LiveTv, Person } from '@material-symbols-svg/svelte/rounded';
 
   let { children } = $props();
 </script>
@@ -38,15 +39,17 @@
   <nav class="nav-container">
     <a href="/" class="logo">Dyonisus</a>
     <div class="nav-links">
-      <a href="/" class="nav-item">
-        <span>Accueil</span>
+      <a href="/" class="nav-item" title="Accueil">
+        <Home class="icon" />
       </a>
-      <a href="/movies" class="nav-item">
-        <span>Films</span>
+      <a href="/movies" class="nav-item" title="Films">
+        <Movie class="icon" />
       </a>
-      <a href="/watch_room" class="nav-item">Watch Room</a>
-      <a href="/profile" class="nav-item">
-        <span>Profil</span>
+      <a href="/watch_room" class="nav-item" title="Watch Room">
+        <LiveTv class="icon" />
+      </a>
+      <a href="/profile" class="nav-item" title="Profil">
+        <Person class="icon" />
       </a>
     </div>
   </nav>
@@ -102,24 +105,25 @@
   .nav-links a {
     color: #ffffff;
     text-decoration: none;
-    font-weight: 500;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, color 0.2s;
   }
 
   .nav-item {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    padding: 0.5rem;
   }
 
   .nav-links a:hover {
-    opacity: 0.75;
+    color: #8f015f;
+    opacity: 1;
   }
 
   /* Contrôle de la taille et de la couleur des icônes de la librairie */
   :global(.icon) {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     fill: currentColor;
   }
 
