@@ -11,8 +11,8 @@
   let innerWidth = $state(browser ? window.innerWidth : 1200);
 
   let particlesToShow = $derived.by(() => {
-    if (innerWidth < 480) return 1;
-    if (innerWidth < 768) return 3;
+    if (innerWidth < 200) return 1;
+    if (innerWidth < 450) return 3;
     if (innerWidth < 1024) return 4;
     return 7;
   });
@@ -64,8 +64,8 @@
       {/if}
     </div>
   {:else}
-    <!-- 2. Search View: Responsive Grid List -->
-    <div class="grid-container">
+    <!-- 2. Search View: Grid matching the carousel's exact column count -->
+    <div class="grid-container" style="grid-template-columns: repeat({particlesToShow}, 1fr);">
       {#each filteredColors as color (color.slug)}
         <Color {...color} />
       {/each}
@@ -114,12 +114,11 @@
 
   .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
+    gap: 10px;
     width: 100%;
-    max-width: 1400px;
-    margin: 40px auto 0;
-    padding: 20px;
+    max-width: 1500px;
+    margin: 30px auto 0;
+    padding: 30px 20px;
     box-sizing: border-box;
   }
 </style>
