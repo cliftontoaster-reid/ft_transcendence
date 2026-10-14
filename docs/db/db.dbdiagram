@@ -10,8 +10,8 @@
       {
         "name": "media",
         "schemaName": "public",
-        "x": 1160,
-        "y": 232
+        "x": 1312,
+        "y": 56
       },
       {
         "name": "media_translations",
@@ -64,8 +64,8 @@
       {
         "name": "roles",
         "schemaName": "public",
-        "x": 944,
-        "y": 744
+        "x": 936,
+        "y": 832.1454545454545
       },
       {
         "name": "permissions",
@@ -82,8 +82,8 @@
       {
         "name": "role_permissions",
         "schemaName": "public",
-        "x": 312,
-        "y": 832
+        "x": 320,
+        "y": 744
       },
       {
         "name": "viewer_profiles",
