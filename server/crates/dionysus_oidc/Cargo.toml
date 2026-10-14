@@ -10,7 +10,7 @@ redis = { version = "0.32", features = ["tokio-comp"] }
 serde_json = "1"
 sha2 = "0.10"
 openidconnect = "4"
-reqwest = { version = "0.12", default-features = false, features = [
+reqwest = { version = "0.13", default-features = false, features = [
   "json",
   "rustls-tls",
 ] }
