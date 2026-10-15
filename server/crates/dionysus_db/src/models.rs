@@ -130,6 +130,16 @@ pub struct NewUser<'a> {
   pub age_bracket: Option<i32>,
 }
 
+#[derive(AsChangeset, Default)]
+#[diesel(table_name = users)]
+pub struct UserProfileChanges<'a> {
+  pub username: Option<&'a str>,
+  pub display_name: Option<&'a str>,
+  pub bio: Option<&'a str>,
+  pub avatar_url: Option<&'a str>,
+  pub age_bracket: Option<i32>,
+}
+
 // --- Viewer profiles ---
 #[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
 #[diesel(belongs_to(User))]

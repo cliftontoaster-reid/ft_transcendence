@@ -2,10 +2,8 @@ syntax = "proto3";
 
 package dionysus.user.v1;
 
-import "dionysus/common/v1/asset.proto";
-
 message UserID {
-  uint64 value = 1;
+  string value = 1;
 }
 
 enum AgeBracket {
@@ -22,7 +20,7 @@ message User {
   string username = 2;
   string display_name = 3;
   string bio = 4;
-  optional dionysus.common.v1.Asset profile_picture = 5;
+  string avatar_url = 5;
   optional AgeBracket age = 6;
 }
 
@@ -57,12 +55,11 @@ message GetProfileResponse {
 }
 
 message UpdateProfileRequest {
-  UserID user_id = 1;
-  optional string username = 2;
-  optional string display_name = 3;
-  optional string bio = 4;
-  optional string avatar_url = 5;
-  optional AgeBracket age = 6;
+  optional string username = 1;
+  optional string display_name = 2;
+  optional string bio = 3;
+  optional string avatar_url = 4;
+  optional AgeBracket age = 5;
 }
 
 message UpdateProfileResponse {
