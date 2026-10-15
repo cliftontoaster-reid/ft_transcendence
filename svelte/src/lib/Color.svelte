@@ -37,7 +37,6 @@
   function handleClick(event: MouseEvent) {
     const elapsedTime = Date.now() - startTime;
 
-    // Only block click if it was an intentional long drag/swipe
     if (isDragging && elapsedTime > 250) {
       event.preventDefault();
       event.stopPropagation();

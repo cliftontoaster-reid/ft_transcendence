@@ -64,7 +64,7 @@
       {/if}
     </div>
   {:else}
-    <!-- 2. Search View: Grid matching the carousel's exact column count -->
+    <!-- 2. Search View: Grid matching carousel columns and tight spacing -->
     <div class="grid-container" style="grid-template-columns: repeat({particlesToShow}, 1fr);">
       {#each filteredColors as color (color.slug)}
         <Color {...color} />
@@ -114,7 +114,7 @@
 
   .grid-container {
     display: grid;
-    gap: 10px;
+    gap: 0px; 
     width: 100%;
     max-width: 1500px;
     margin: 30px auto 0;
