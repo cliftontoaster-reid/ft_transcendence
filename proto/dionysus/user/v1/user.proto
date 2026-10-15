@@ -21,28 +21,51 @@ message User {
   UserID id = 1;
   string username = 2;
   string display_name = 3;
-  optional dionysus.common.v1.Asset profile_picture = 4;
-  optional AgeBracket age = 5;
+  string bio = 4;
+  optional dionysus.common.v1.Asset profile_picture = 5;
+  optional AgeBracket age = 6;
 }
 
-//MESSAGES
+// MESSAGES
 message Message {
   uint64 id = 1;
   UserID sender_id = 2;
   UserID receiver_id = 3;
   string content = 4;
   int64 timestamp = 5;
-  string bio = 6;
 }
 
-//PROFIL
-
+// PROFILE
 message CreateProfileRequest {
   string username = 1;
-  string bio = 2;
-  string avatar_url = 3;
+  string display_name = 2;
+  string bio = 3;
+  string avatar_url = 4;
+  optional AgeBracket age = 5;
 }
+
 message CreateProfileResponse {
+  User user = 1;
+}
+
+message GetProfileRequest {
+  UserID user_id = 1;
+}
+
+message GetProfileResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  UserID user_id = 1;
+  optional string username = 2;
+  optional string display_name = 3;
+  optional string bio = 4;
+  optional string avatar_url = 5;
+  optional AgeBracket age = 6;
+}
+
+message UpdateProfileResponse {
   User user = 1;
 }
 
@@ -57,14 +80,16 @@ message GetFriendListResponse {
 
 // SERVICES
 service UserService {
-  // Créer un compte / profil
+  // Créer un profil
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
-  
+  // Obtenir un profil
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  // Modifier un profil
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   // Obtenir la liste d'amis
   rpc GetFriendList(GetFriendListRequest) returns (GetFriendListResponse);
 }
 
 // service ChatService {
-//   // Le streaming bidirectionnel permet d'envoyer et recevoir en temps réel
 //   rpc StreamMessages(stream Message) returns (stream Message);
-// } To implemente later on frontend
+// }

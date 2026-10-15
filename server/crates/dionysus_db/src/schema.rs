@@ -155,6 +155,11 @@ diesel::table! {
     created_at -> Timestamptz,
     updated_at -> Timestamptz,
     disabled -> Bool,
+    #[max_length = 64]
+    username -> Nullable<Varchar>,
+    #[max_length = 500]
+    bio -> Nullable<Varchar>,
+    age_bracket -> Nullable<Int4>,
   }
 }
 
