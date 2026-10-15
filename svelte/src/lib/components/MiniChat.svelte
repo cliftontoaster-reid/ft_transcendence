@@ -1,48 +1,42 @@
 <script lang="ts">
-  let messages = $state([
-    { sender: 'Dyonisus Bot', text: 'Bienvenue sur Dyonisus ! Prêt pour une session film ? 🍿' }
-  ]);
-  
+  // Liste des messages (démarre vide ou avec des vrais messages du serveur)
+  let messages = $state<{ sender: string; text: string }[]>([]);
   let inputMessage = $state('');
 
   function sendMessage(e: Event) {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
+    // Ajout du message localement (en attendant la liaison avec le serveur/WebSocket)
     messages = [...messages, { sender: 'Moi', text: inputMessage }];
-    const userText = inputMessage;
-    inputMessage = '';
+    
+    // TODO (Back-end) : Envoyer le message via WebSocket au serveur
+    // socket.emit('sendMessage', { text: inputMessage });
 
-    // Petite réponse automatique légère après un court délai
-    setTimeout(() => {
-      messages = [...messages, { 
-        sender: 'Dyonisus Bot', 
-        text: `J'ai bien reçu ton message : "${userText}". La Watch Room arrive bientôt !` 
-      }];
-    }, 600);
+    inputMessage = '';
   }
 </script>
 
 <div class="chat-container">
   <div class="chat-header">
     <span class="status-dot"></span>
-    <h3>Mini Chat Dyonisus</h3>
+    <h3>Chat de la Watch Room</h3>
   </div>
 
   <div class="chat-messages">
-    {#each messages as msg}
-      <div class="message {msg.sender === 'Moi' ? 'user' : 'bot'}">
-        <span class="sender">{msg.sender}</span>
-        <p>{msg.text}</p>
-      </div>
-    {/each}
+      {#each messages as msg}
+        <div class="message {msg.sender === 'Moi' ? 'user' : 'other'}">
+          <span class="sender">{msg.sender}</span>
+          <p>{msg.text}</p>
+        </div>
+      {/each}
   </div>
 
   <form class="chat-input-form" onsubmit={sendMessage}>
     <input 
       type="text" 
       bind:value={inputMessage} 
-      placeholder="Écris un message..." 
+      placeholder="Write your message..." 
       autocomplete="off"
     />
     <button type="submit">Envoyer</button>
@@ -52,7 +46,7 @@
 <style>
   .chat-container {
     background: #18181b;
-    border: 1px: solid #27272a;
+    border: 1px solid #27272a;
     border-radius: 12px;
     width: 100%;
     max-width: 450px;
@@ -86,11 +80,18 @@
 
   .chat-messages {
     padding: 1rem;
-    height: 250px;
+    height: 300px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .empty-chat {
+    color: #71717a;
+    font-size: 0.85rem;
+    text-align: center;
+    margin: auto 0;
   }
 
   .message {
@@ -100,12 +101,14 @@
     font-size: 0.9rem;
   }
 
-  .message.bot {
+  /* Style pour les autres utilisateurs connectés */
+  .message.other {
     background: #27272a;
     color: #e4e4e7;
     align-self: flex-start;
   }
 
+  /* Style pour l'utilisateur courant */
   .message.user {
     background: #8f015f;
     color: #ffffff;

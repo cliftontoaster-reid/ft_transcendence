@@ -18,7 +18,7 @@
 
  <script>
   import Overview from '$lib/components/Overview.svelte';
-  import Overview from '$lib/components/MiniChat.svelte';
+  import MiniChat from '$lib/components/MiniChat.svelte';
 </script>
 
 <section class="overview-section">

@@ -129,13 +129,21 @@
 
   .site-main {
     min-height: 100vh;
-    padding-top: 2rem; 
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 2rem; /* 2rem de padding à gauche et à droite */
+    box-sizing: border-box;
   }
 
   .site-footer {
     text-align: center;
+    max-width: 1400px;
+    margin: 0 auto;
     padding: 2rem;
     color: #71717a;
     font-size: 0.85rem;
+    box-sizing: border-box;
   }
+
+
 </style>
