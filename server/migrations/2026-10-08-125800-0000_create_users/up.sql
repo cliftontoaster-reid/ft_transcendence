@@ -7,5 +7,4 @@ CREATE TABLE users (
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   disabled boolean NOT NULL DEFAULT false
 );
-
 SELECT diesel_manage_updated_at('users');

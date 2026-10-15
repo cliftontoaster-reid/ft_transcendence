@@ -114,6 +114,9 @@ pub struct User {
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
   pub disabled: bool,
+  pub username: Option<String>,
+  pub bio: Option<String>,
+  pub age_bracket: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -122,6 +125,19 @@ pub struct NewUser<'a> {
   pub display_name: &'a str,
   pub email: Option<&'a str>,
   pub avatar_url: Option<&'a str>,
+  pub username: Option<&'a str>,
+  pub bio: Option<&'a str>,
+  pub age_bracket: Option<i32>,
+}
+
+#[derive(AsChangeset, Default)]
+#[diesel(table_name = users)]
+pub struct UserProfileChanges<'a> {
+  pub username: Option<&'a str>,
+  pub display_name: Option<&'a str>,
+  pub bio: Option<&'a str>,
+  pub avatar_url: Option<&'a str>,
+  pub age_bracket: Option<i32>,
 }
 
 // --- Viewer profiles ---

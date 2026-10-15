@@ -2,10 +2,8 @@ syntax = "proto3";
 
 package dionysus.user.v1;
 
-import "dionysus/common/v1/asset.proto";
-
 message UserID {
-  uint64 value = 1;
+  string value = 1;
 }
 
 enum AgeBracket {
@@ -21,16 +19,74 @@ message User {
   UserID id = 1;
   string username = 2;
   string display_name = 3;
-  optional dionysus.common.v1.Asset profile_picture = 4;
+  string bio = 4;
+  string avatar_url = 5;
+  optional AgeBracket age = 6;
+}
+
+// MESSAGES
+message Message {
+  uint64 id = 1;
+  UserID sender_id = 2;
+  UserID receiver_id = 3;
+  string content = 4;
+  int64 timestamp = 5;
+}
+
+// PROFILE
+message CreateProfileRequest {
+  string username = 1;
+  string display_name = 2;
+  string bio = 3;
+  string avatar_url = 4;
   optional AgeBracket age = 5;
 }
 
-// message GetFriendListRequest {}
+message CreateProfileResponse {
+  User user = 1;
+}
 
-// message GetFriendListResponse {
-//   repeated User friends = 1;
-// }
+message GetProfileRequest {
+  UserID user_id = 1;
+}
 
-// service UserService {
-//   rpc GetFriendList(GetFriendListRequest) returns (GetFriendListResponse);
+message GetProfileResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  optional string username = 1;
+  optional string display_name = 2;
+  optional string bio = 3;
+  optional string avatar_url = 4;
+  optional AgeBracket age = 5;
+}
+
+message UpdateProfileResponse {
+  User user = 1;
+}
+
+// FRIENDS
+message GetFriendListRequest {
+  UserID user_id = 1;
+}
+
+message GetFriendListResponse {
+  repeated User friends = 1;
+}
+
+// SERVICES
+service UserService {
+  // Créer un profil
+  rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
+  // Obtenir un profil
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  // Modifier un profil
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  // Obtenir la liste d'amis
+  rpc GetFriendList(GetFriendListRequest) returns (GetFriendListResponse);
+}
+
+// service ChatService {
+//   rpc StreamMessages(stream Message) returns (stream Message);
 // }
