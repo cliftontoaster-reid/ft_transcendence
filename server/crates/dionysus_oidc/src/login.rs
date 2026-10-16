@@ -1,6 +1,7 @@
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use openidconnect::{
-  ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, PkceCodeChallenge, RedirectUrl, Scope,
+  AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, PkceCodeChallenge,
+  PkceCodeVerifier, RedirectUrl, Scope, TokenResponse,
   core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata},
 };
 use redis::AsyncCommands;
@@ -36,6 +37,22 @@ pub enum LoginUrlError {
   Redis(#[from] redis::RedisError),
   #[error("failed to serialize login transaction: {0}")]
   Serialization(#[from] serde_json::Error),
+  #[error("missing callback state")]
+  MissingCallbackState,
+  #[error("missing authorization code")]
+  MissingAuthorizationCode,
+  #[error("OIDC provider returned an error: {0}")]
+  Provider(String),
+  #[error("login transaction not found or expired")]
+  MissingLoginTransaction,
+  #[error("callback state does not match the login transaction")]
+  StateMismatch,
+  #[error("OIDC token exchange failed: {0}")]
+  TokenExchange(String),
+  #[error("OIDC ID token is missing")]
+  MissingIdToken,
+  #[error("OIDC ID token verification failed: {0}")]
+  IdTokenVerification(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +67,22 @@ pub struct LoginTransaction {
 #[derive(Debug)]
 pub struct LoginRequest {
   pub authorization_url: Url,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AuthenticatedUser {
+  pub provider: String,
+  pub subject: String,
+  pub email: Option<String>,
+  pub preferred_username: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CallbackRequest {
+  pub code: Option<String>,
+  pub state: Option<String>,
+  pub error: Option<String>,
+  pub error_description: Option<String>,
 }
 
 pub struct LoginUrlService {
@@ -118,6 +151,84 @@ impl LoginUrlService {
 
     Ok(LoginRequest { authorization_url })
   }
+
+  pub async fn handle_callback(
+    &self,
+    callback: CallbackRequest,
+  ) -> Result<AuthenticatedUser, LoginUrlError> {
+    let state = callback
+      .state
+      .filter(|state| !state.is_empty())
+      .ok_or(LoginUrlError::MissingCallbackState)?;
+    let transaction = consume_login_transaction(&self.redis, &state).await?;
+
+    if transaction.state != state {
+      return Err(LoginUrlError::StateMismatch);
+    }
+
+    if let Some(error) = callback.error {
+      let description = callback.error_description.unwrap_or_default();
+      let detail = if description.is_empty() {
+        error
+      } else {
+        format!("{error}: {description}")
+      };
+      return Err(LoginUrlError::Provider(detail));
+    }
+
+    let code = callback
+      .code
+      .filter(|code| !code.is_empty())
+      .ok_or(LoginUrlError::MissingAuthorizationCode)?;
+
+    let provider = self
+      .config
+      .provider
+      .get(&transaction.provider)
+      .ok_or_else(|| LoginUrlError::UnknownProvider(transaction.provider.clone()))?;
+    let client_secret = provider.client_secret.resolve()?;
+    let issuer = IssuerUrl::new(provider.issuer_url.to_string())?;
+    let http_client = reqwest::ClientBuilder::new()
+      .redirect(reqwest::redirect::Policy::none())
+      .build()
+      .map_err(|error| LoginUrlError::Discovery(error.to_string()))?;
+    let provider_metadata = CoreProviderMetadata::discover_async(issuer, &http_client)
+      .await
+      .map_err(|error| LoginUrlError::Discovery(error.to_string()))?;
+    let client = CoreClient::from_provider_metadata(
+      provider_metadata,
+      ClientId::new(provider.client_id.clone()),
+      Some(ClientSecret::new(client_secret)),
+    )
+    .set_redirect_uri(
+      RedirectUrl::new(transaction.redirect_uri.to_string())
+        .expect("redirect URI was validated before storing the transaction"),
+    );
+
+    let token_response = client
+      .exchange_code(AuthorizationCode::new(code))
+      .map_err(|error| LoginUrlError::TokenExchange(error.to_string()))?
+      .set_pkce_verifier(PkceCodeVerifier::new(transaction.code_verifier))
+      .request_async(&http_client)
+      .await
+      .map_err(|error| LoginUrlError::TokenExchange(error.to_string()))?;
+    let id_token = token_response
+      .id_token()
+      .ok_or(LoginUrlError::MissingIdToken)?;
+    let expected_nonce = Nonce::new(transaction.nonce);
+    let claims = id_token
+      .claims(&client.id_token_verifier(), &expected_nonce)
+      .map_err(|error| LoginUrlError::IdTokenVerification(error.to_string()))?;
+
+    Ok(AuthenticatedUser {
+      provider: transaction.provider,
+      subject: claims.subject().as_str().to_owned(),
+      email: claims.email().map(|email| email.as_str().to_owned()),
+      preferred_username: claims
+        .preferred_username()
+        .map(|name| name.as_str().to_owned()),
+    })
+  }
 }
 
 fn select_redirect_uri(
@@ -169,6 +280,21 @@ async fn store_login_transaction(
     .await?;
 
   Ok(())
+}
+
+async fn consume_login_transaction(
+  redis: &redis::Client,
+  state: &str,
+) -> Result<LoginTransaction, LoginUrlError> {
+  let key = format!("{LOGIN_KEY_PREFIX}{}", generate_state_hash(state));
+  let mut connection = redis.get_multiplexed_async_connection().await?;
+  let payload: Option<String> = redis::cmd("GETDEL")
+    .arg(key)
+    .query_async(&mut connection)
+    .await?;
+  let payload = payload.ok_or(LoginUrlError::MissingLoginTransaction)?;
+
+  Ok(serde_json::from_str(&payload)?)
 }
 
 #[cfg(test)]
