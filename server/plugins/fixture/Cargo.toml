@@ -1,0 +1,13 @@
+[package]
+name = "dionysus_plugin_fixture"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+# The whole crate is wasm32-only (`#![cfg(target_arch = "wasm32")]`), so
+# the SDK is a wasm dependency — target-gating it keeps native checks from
+# flagging it as unused.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+dionysus_metadata_sdk = { version = "0.1.0", path = "../../crates/dionysus_metadata_sdk" }

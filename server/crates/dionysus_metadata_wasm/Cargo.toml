@@ -1,0 +1,23 @@
+[package]
+name = "dionysus_metadata_wasm"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = "0.1.92"
+dionysus_metadata = { version = "0.1.0", path = "../dionysus_metadata" }
+dionysus_metadata_model = { version = "0.1.0", path = "../dionysus_metadata_model" }
+dionysus_metadata_sdk = { version = "0.1.0", path = "../dionysus_metadata_sdk" }
+futures = "0.3.31"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.53.3", features = ["sync"] }
+tracing = "0.1.44"
+wasmtime = "49"
+wasmtime-wasi = "49"
+
+[dev-dependencies]
+tokio = { version = "1.53.3", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
+tracing-subscriber = "0.3.21"

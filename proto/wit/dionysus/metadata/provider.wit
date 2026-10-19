@@ -1,0 +1,23 @@
+package dionysus:metadata@0.1.0;
+
+interface host {
+  record http-response { status: u16, body: list<u8> }
+  enum http-method { get, post }
+  // The host mediates: per-plugin domain allow-list, timeouts, size caps.
+  http-request: func(method: http-method, url: string,
+                     headers: list<tuple<string, string>>,
+                     body: option<list<u8>>) -> result<http-response, string>;
+  log: func(level: u8, message: string);
+}
+
+interface provider {
+  // MessagePack-encoded dionysus_metadata_model payloads
+  search: func(query: list<u8>) -> result<list<list<u8>>, string>;
+  fetch:  func(id: list<u8>) -> result<list<u8>, string>;
+  descriptor: func() -> list<u8>;   // msgpack Descriptor
+}
+
+world metadata-provider {
+  import host;
+  export provider;
+}

@@ -1,10 +1,14 @@
 use crate::{
   schema::{
-    media, media_images, media_track, media_translations, my_list, oidc_identities, permissions,
-    role_permissions, roles, sessions, user_roles, users, viewer_profiles, watch_history,
-    watch_progress,
+    media, media_external_ids, media_images, media_track, media_translations,
+  metadata_source, my_list,
+    oidc_identities, permissions, role_permissions, roles, sessions, user_roles, users,
+    viewer_profiles, watch_history, watch_progress,
   },
-  types::{media_image_type::MediaImageType, media_track_type::MediaTrackType, tsvector::TsVector},
+  types::{
+    media_image_type::MediaImageType, media_kind::MediaKind, media_track_type::MediaTrackType,
+    tsvector::TsVector,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
@@ -249,12 +253,75 @@ pub struct NewMyListEntry {
 pub struct Media {
   pub id: Uuid,
   pub manifest_path: String,
+  pub kind: MediaKind,
+  /// blake3 content hash of the imported source file; the import pipeline
+  /// uses it to dedup re-scans. NULL for legacy rows.
+  pub source_hash: Option<String>,
+  pub duration_ms: Option<i64>,
+  pub release_year: Option<i16>,
+  pub season_number: Option<i32>,
+  pub episode_number: Option<i32>,
+  /// Where the file came from, kept as provenance even after the original
+  /// is deleted post-split.
+  pub original_path: Option<String>,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = media)]
 pub struct NewMedia<'a> {
+  /// Generated up front by the importer — the storage directory is named
+  /// after it before the row exists.
+  pub id: Uuid,
   pub manifest_path: &'a str,
+  pub kind: MediaKind,
+  pub source_hash: Option<&'a str>,
+  pub duration_ms: Option<i64>,
+  pub release_year: Option<i16>,
+  pub season_number: Option<i32>,
+  pub episode_number: Option<i32>,
+  pub original_path: Option<&'a str>,
+}
+
+// --- Media External IDs ---
+/// Provider-scoped external identifier (e.g. `tmdb` → `155`,
+/// `imdb` → `tt1375666`); mirrors the `ExternalPersonID` proto convention.
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(belongs_to(Media))]
+#[diesel(table_name = media_external_ids)]
+pub struct MediaExternalId {
+  pub id: Uuid,
+  pub media_id: Uuid,
+  pub provider: String,
+  pub value: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = media_external_ids)]
+pub struct NewMediaExternalId<'a> {
+  pub media_id: Uuid,
+  pub provider: &'a str,
+  pub value: &'a str,
+}
+
+// --- Metadata Sources ---
+/// Registry row for a metadata source (native provider or WASM plugin) that
+/// answered during enrichment — the descriptor it reported about itself.
+#[derive(Queryable, Selectable, Identifiable, Debug)]
+#[diesel(table_name = metadata_source)]
+pub struct MetadataSource {
+  pub id: String,
+  pub name: String,
+  pub version: String,
+  pub model_version: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = metadata_source)]
+pub struct NewMetadataSource<'a> {
+  pub id: &'a str,
+  pub name: &'a str,
+  pub version: &'a str,
+  pub model_version: &'a str,
 }
 
 // --- Media Translations ---
@@ -293,6 +360,15 @@ pub struct MediaTrack {
   pub track_type: MediaTrackType,
   pub locale: String,
   pub storage_path: String,
+  /// Stream index of the track in the original (now deleted) container.
+  pub track_index: i32,
+  pub codec: Option<String>,
+  pub is_default: bool,
+  pub is_forced: bool,
+  pub channels: Option<i16>,
+  pub width: Option<i32>,
+  pub height: Option<i32>,
+  pub title: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -302,6 +378,14 @@ pub struct NewMediaTrack<'a> {
   pub track_type: MediaTrackType,
   pub locale: &'a str,
   pub storage_path: &'a str,
+  pub track_index: i32,
+  pub codec: Option<&'a str>,
+  pub is_default: bool,
+  pub is_forced: bool,
+  pub channels: Option<i16>,
+  pub width: Option<i32>,
+  pub height: Option<i32>,
+  pub title: Option<&'a str>,
 }
 
 // --- Media Images ---

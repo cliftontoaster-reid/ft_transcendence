@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 chrono = "0.4"
+dionysus_ffprobe = { version = "0.1.0", path = "../dionysus_ffprobe" }
 prost = "0.14.4"
 prost-types = "0.14.4"
 rust_ffmpeg = "1.0.0"

@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 dash-mpd = "0.20.5"
+diesel = { version = "2.3.13", features = ["postgres"] }
+dionysus_db = { version = "0.1.0", path = "../dionysus_db" }
 rocket = { version = "0.5.1", features = ["json"] }
 tokio = { version = "1.53.1", features = ["full"] }
 tonic = "0.14.6"

@@ -2,6 +2,8 @@ use rocket::http::{ContentType, Status};
 use rocket::State;
 use uuid::Uuid;
 
+use dionysus_db::types::media_track_type::MediaTrackType;
+
 use crate::bitrate;
 use crate::cache;
 use crate::config::AppConfig;
@@ -39,7 +41,7 @@ pub async fn manifest_route(
   config: &State<AppConfig>,
 ) -> Result<(ContentType, String), Status> {
   let id = parse_media_id(media_id)?;
-  if source::resolve_source(&config.media_root, &id)
+  if source::resolve_source(&config.media_root, &id, MediaTrackType::Video)
     .await
     .is_none()
   {
@@ -62,7 +64,7 @@ pub async fn video_segment(
   config: &State<AppConfig>,
 ) -> Result<(ContentType, Vec<u8>), Status> {
   let id = parse_media_id(media_id)?;
-  let source = source::resolve_source(&config.media_root, &id)
+  let source = source::resolve_source(&config.media_root, &id, MediaTrackType::Video)
     .await
     .ok_or(Status::NotFound)?;
 
@@ -123,7 +125,7 @@ pub async fn audio_segment(
   config: &State<AppConfig>,
 ) -> Result<(ContentType, Vec<u8>), Status> {
   let id = parse_media_id(media_id)?;
-  let source = source::resolve_source(&config.media_root, &id)
+  let source = source::resolve_source(&config.media_root, &id, MediaTrackType::Audio)
     .await
     .ok_or(Status::NotFound)?;
 

@@ -98,6 +98,58 @@ message JobID {
   dionysus.common.v1.UUID value = 1; // UUIDv5
 }
 
+enum MediaTrackType {
+  MEDIA_TRACK_TYPE_UNSPECIFIED = 0;
+  MEDIA_TRACK_TYPE_VIDEO = 1;
+  MEDIA_TRACK_TYPE_AUDIO = 2;
+  MEDIA_TRACK_TYPE_SUBTITLES = 3;
+}
+
+// One track split losslessly (`-c copy`) out of a source container.
+message SplitTrack {
+  MediaTrackType track_type = 1;
+
+  // Absolute stream index of the track in the source container.
+  int32 stream_index = 2;
+
+  // Produced file, written under SplitTracksRequest.output_dir.
+  string path = 3;
+
+  // Codec of the produced file (may differ from the source codec when a
+  // subtitle track had to be converted to a Matroska-compatible format).
+  string codec = 4;
+
+  // Language tag carried by the source track, "und" when absent.
+  string language = 5;
+  string title = 6;
+
+  bool is_default = 7;
+  bool is_forced = 8;
+
+  int32 channels = 9; // audio tracks
+  int32 width = 10;   // video tracks
+  int32 height = 11;
+}
+
+message SplitTracksRequest {
+  JobID id = 1;
+
+  // Muxed source file on disk.
+  string source_path = 2;
+
+  // Directory to write one file per track into; created if missing.
+  string output_dir = 3;
+}
+
+message SplitTracksResponse {
+  // One entry per produced file, in source stream order grouped by type.
+  repeated SplitTrack tracks = 1;
+
+  // Non-fatal issues: unsupported subtitle codecs skipped or converted,
+  // best-effort subtitle tracks that failed to split.
+  repeated string warnings = 2;
+}
+
 // A single-track video segment extraction job.
 message VideoJob {
   JobID id = 1;
@@ -188,4 +240,8 @@ message SegmentAudioResponse {
 service JobService {
   rpc SegmentVideo(SegmentVideoRequest) returns (SegmentVideoResponse);
   rpc SegmentAudio(SegmentAudioRequest) returns (SegmentAudioResponse);
+
+  // Losslessly demux every video/audio/subtitle track of one source file into
+  // its own file (mkv/mka/mks), one file per track.
+  rpc SplitTracks(SplitTracksRequest) returns (SplitTracksResponse);
 }
