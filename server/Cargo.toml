@@ -1,2 +1,3 @@
 [workspace]
 resolver = "3"
+members = ["crates/dionysus_db","crates/dionysus_ffmpeg", "crates/dionysus_media_server", "crates/dionysus_oidc"]

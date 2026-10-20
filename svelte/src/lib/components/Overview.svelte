@@ -66,7 +66,7 @@
 <style>
   .overview-container {
     position: relative;
-    width: 90%;
+    width: 100%;
     max-width: none;
     margin: 0 auto;
     aspect-ratio: 16 / 9;
@@ -227,7 +227,7 @@
 
   @media (max-width: 640px) {
     .overview-container {
-      width: 92%;
+      width: 100%;
       border-radius: 12px;
     }
 

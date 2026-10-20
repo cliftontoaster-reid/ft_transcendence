@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package dionysus.room.v1;
+
+import "dionysus/common/v1/asset.proto";
+import "dionysus/user/v1/user.proto";
+
+message RoomID {
+  dionysus.common.v1.UUID value = 1;
+}
+
+message Room {
+  RoomID id = 1;
+  string name = 2;
+
+  repeated dionysus.user.v1.User participant = 3;
+  dionysus.user.v1.AgeBracket age = 4;
+
+  reserved 5, 6;
+  reserved "queue", "playback_info";
+}

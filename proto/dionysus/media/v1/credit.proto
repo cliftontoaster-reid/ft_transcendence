@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package dionysus.media.v1;
+
+import "dionysus/common/v1/asset.proto";
+import "dionysus/media/v1/person.proto";
+
+message MovieCreditID {
+  dionysus.common.v1.UUID value = 1;
+}
+
+message MovieCredit {
+  enum Role {
+    ROLE_UNSPECIFIED = 0;
+
+    // Cast
+    ROLE_ACTOR = 1;
+    ROLE_VOICE_ACTOR = 2;
+    ROLE_CAMEO = 3;
+    ROLE_STUNT_PERFORMER = 4;
+
+    // Direction and writing
+    ROLE_DIRECTOR = 10;
+    ROLE_ASSISTANT_DIRECTOR = 11;
+    ROLE_WRITER = 12;
+    ROLE_SCREENPLAY_WRITER = 13;
+    ROLE_STORY_WRITER = 14;
+
+    // Production
+    ROLE_PRODUCER = 20;
+    ROLE_EXECUTIVE_PRODUCER = 21;
+    ROLE_CO_PRODUCER = 22;
+    ROLE_LINE_PRODUCER = 23;
+    ROLE_CASTING_DIRECTOR = 24;
+
+    // Camera and editing
+    ROLE_CINEMATOGRAPHER = 30;
+    ROLE_EDITOR = 31;
+    ROLE_COLORIST = 32;
+
+    // Art department
+    ROLE_PRODUCTION_DESIGNER = 40;
+    ROLE_ART_DIRECTOR = 41;
+    ROLE_SET_DECORATOR = 42;
+    ROLE_COSTUME_DESIGNER = 43;
+    ROLE_MAKEUP_ARTIST = 44;
+    ROLE_HAIR_STYLIST = 45;
+
+    // Sound and music
+    ROLE_COMPOSER = 50;
+    ROLE_MUSIC_SUPERVISOR = 51;
+    ROLE_SOUND_DESIGNER = 52;
+    ROLE_SOUND_MIXER = 53;
+    ROLE_SOUND_EDITOR = 54;
+
+    // Effects and other technical work
+    ROLE_VISUAL_EFFECTS_ARTIST = 60;
+    ROLE_SPECIAL_EFFECTS_ARTIST = 61;
+    ROLE_CHOREOGRAPHER = 62;
+    ROLE_COORDINATOR = 63;
+
+    // Other credits
+    ROLE_NARRATOR = 70;
+    ROLE_ARCHIVE_FOOTAGE = 71;
+    ROLE_SELF = 72;
+    ROLE_SPECIAL_THANKS = 73;
+  }
+
+  MovieCreditID id = 1;
+  PersonID person_id = 2;
+  repeated Role roles = 3;
+
+  repeated string characters = 4;
+  int32 billing_order = 5;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package dionysus.media.v1;
+
+import "dionysus/common/v1/asset.proto";
+import "google/type/date.proto";
+
+message PersonID {
+  dionysus.common.v1.UUID value = 1;
+}
+
+message Person {
+  PersonID id = 1;
+
+  string display_name = 2;
+  string given_name = 3;
+  string family_name = 4;
+  repeated string alternate_names = 5;
+
+  google.type.Date birth_date = 6;
+  optional google.type.Date death_date = 7;
+  string birth_place = 8;
+
+  string biography = 9;
+  optional dionysus.common.v1.Asset profile_picture = 10;
+
+  repeated ExternalPersonID external_ids = 11;
+}
+
+message ExternalPersonID {
+  string provider = 1; // e.g. "imdb", "tmdb"
+  string value = 2;
+}

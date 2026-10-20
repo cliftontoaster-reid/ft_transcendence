@@ -17,9 +17,12 @@
  -->
   
 <script lang="ts">
+  import { setContext } from 'svelte';
   import type { Pathname } from '$app/types';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
+  import SearchBar from '$lib/SearchBar.svelte';
+  import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
   import { locales, localizeHref } from '$lib/paraglide/runtime';
   import './layout.css';
   import favicon from '$lib/assets/favicon.svg';
@@ -28,6 +31,8 @@
   import { Home, Movie, LiveTv, Person } from '@material-symbols-svg/svelte/rounded';
 
   let { children } = $props();
+  const searchQuery: SearchQueryState = $state({ value: '' });
+  setContext(SEARCH_QUERY_CONTEXT, searchQuery);
 </script>
 
 <svelte:head>
@@ -38,6 +43,9 @@
 <header class="site-header">
   <nav class="nav-container">
     <a href="/" class="logo">Dyonisus</a>
+    <div class="nav-search">
+      <SearchBar bind:searchQuery={searchQuery.value} />
+    </div>
     <div class="nav-links">
       <a href="/" class="nav-item" title="Home">
         <Home class="icon" />
@@ -83,10 +91,21 @@
 
   .nav-container {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
+  }
+
+  .nav-search {
+    flex: 1;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .nav-search :global(.search-container) {
+    max-width: none;
+    margin: 0;
   }
 
   .logo {
@@ -129,9 +148,9 @@
 
   .site-main {
     min-height: 100vh;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 2rem 2rem;
+    padding: 0 1.5rem 2rem;
     box-sizing: border-box;
   }
 
@@ -145,5 +164,21 @@
     box-sizing: border-box;
   }
 
+  @media (max-width: 640px) {
+    .nav-container {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .nav-search {
+      order: 1;
+      flex-basis: 100%;
+      max-width: none;
+    }
+
+    .nav-links {
+      gap: 0.5rem;
+    }
+  }
 
 </style>

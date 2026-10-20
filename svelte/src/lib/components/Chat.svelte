@@ -9,10 +9,6 @@
 
     // Ajout du message localement (en attendant la liaison avec le serveur/WebSocket)
     messages = [...messages, { sender: 'Moi', text: inputMessage }];
-    
-    // TODO (Back-end) : Envoyer le message via WebSocket au serveur
-    // socket.emit('sendMessage', { text: inputMessage });
-
     inputMessage = '';
   }
 </script>
