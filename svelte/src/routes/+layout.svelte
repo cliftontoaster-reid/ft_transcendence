@@ -24,7 +24,7 @@
   import './layout.css';
   import favicon from '$lib/assets/favicon.svg';
 
-  // Importation des icônes de ta librairie
+  // Importation librarie for icons
   import { Home, Movie, LiveTv, Person } from '@material-symbols-svg/svelte/rounded';
 
   let { children } = $props();
@@ -34,21 +34,21 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<!-- Barre de navigation -->
+<!-- Navbar -->
 <header class="site-header">
   <nav class="nav-container">
     <a href="/" class="logo">Dyonisus</a>
     <div class="nav-links">
-      <a href="/" class="nav-item" title="Accueil">
+      <a href="/" class="nav-item" title="Home">
         <Home class="icon" />
       </a>
-      <a href="/movies" class="nav-item" title="Films">
+      <a href="/movies" class="nav-item" title="Movies">
         <Movie class="icon" />
       </a>
       <a href="/watch_room" class="nav-item" title="Watch Room">
         <LiveTv class="icon" />
       </a>
-      <a href="/profile" class="nav-item" title="Profil">
+      <a href="/profile" class="nav-item" title="Profile">
         <Person class="icon" />
       </a>
     </div>
@@ -60,7 +60,7 @@
 </main>
 
 <footer class="site-footer">
-  <p>© 2026 - Tous droits réservés</p>
+  <p>© 2026 - All rights reserved.</p>
 </footer>
 
 <div style="display:none">
@@ -120,7 +120,7 @@
     opacity: 1;
   }
 
-  /* Contrôle de la taille et de la couleur des icônes de la librairie */
+  /* setting icons */
   :global(.icon) {
     width: 26px;
     height: 26px;
@@ -131,7 +131,7 @@
     min-height: 100vh;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem 2rem; /* 2rem de padding à gauche et à droite */
+    padding: 2rem 2rem;
     box-sizing: border-box;
   }
 

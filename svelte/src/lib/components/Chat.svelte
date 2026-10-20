@@ -20,7 +20,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <span class="status-dot"></span>
-    <h3>Chat de la Watch Room</h3>
+    <h3>Chat</h3>
   </div>
 
   <div class="chat-messages">
@@ -45,6 +45,7 @@
 
 <style>
   .chat-container {
+    position: relative;
     background: #18181b;
     border: 1px solid #27272a;
     border-radius: 12px;
