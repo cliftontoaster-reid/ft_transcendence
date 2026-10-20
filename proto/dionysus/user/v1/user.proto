@@ -15,7 +15,7 @@ enum AgeBracket {
   AGE_BRACKET_PEGI_18 = 5;
 }
 
-message password{
+message Password{
   string actual_password = 1;
   string change_password = 2;
 }
