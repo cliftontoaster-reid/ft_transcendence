@@ -15,14 +15,19 @@ enum AgeBracket {
   AGE_BRACKET_PEGI_18 = 5;
 }
 
+message password{
+  string actual_password = 1;
+  string change_password = 2;
+}
+
 message User {
   UserID id = 1;
   string username = 2;
   string display_name = 3;
   string bio = 4;
   string avatar_url = 5;
-  optional AgeBracket age = 6;
-}
+  optional AgeBracket age = 6; 
+    }
 
 // MESSAGES
 message Message {
