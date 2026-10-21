@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import Carousel from 'svelte-carousel';
-  import ColorCard from '$lib/Color.svelte';
+  import ColorCard from '$lib/components/Color.svelte';
   import type { Color } from '$lib/colors';
 
   let {

@@ -50,7 +50,19 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 8px 1px rgb(255 122 26 / 18%),
+      0 0 16px 3px rgb(255 122 26 / 8%);
+    transition: box-shadow 0.25s ease;
+  }
+
+  .chat-container:hover,
+  .chat-container:focus-within {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 8px 2px rgb(255 122 26 / 65%),
+      0 0 24px 6px rgb(255 122 26 / 30%);
   }
 
   .chat-header {

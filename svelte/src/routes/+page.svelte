@@ -19,9 +19,10 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { getContext } from 'svelte';
-  import Color from '$lib/Color.svelte';
+  import Color from '$lib/components/Color.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
   import Chat from '$lib/components/Chat.svelte';
+  import ContactsSidebar from '$lib/components/Contacts_sidebar.svelte';
   import Overview from '$lib/components/Overview.svelte';
   import { colors } from '$lib/colors';
   import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
@@ -92,6 +93,8 @@
     <Chat />
   </aside>
 
+  <ContactsSidebar />
+
   <section class="browse-section" aria-label="Browse colors">
     {#if isSearching}
       <div
@@ -121,12 +124,14 @@
 <style>
   .home-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 280px) 120px;
+    grid-template-rows: clamp(360px, 36vw, 560px) auto;
     gap: 1rem;
-    align-items: start;
+    align-items: stretch;
   }
 
   .home-content {
+    height: 100%;
     min-width: 0;
   }
 
@@ -137,7 +142,12 @@
 
   .overview-section {
     width: 100%;
-    padding: 0.5rem 0 2rem;
+    height: 100%;
+  }
+
+  .overview-section :global(.overview-container) {
+    height: 100%;
+    aspect-ratio: auto;
   }
 
   .grid-container {
@@ -148,19 +158,63 @@
   }
 
   .chat-sidebar {
-    justify-self: end;
     width: 100%;
-    max-width: 280px;
-    padding-top: 2rem;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
   }
 
-  @media (max-width: 800px) {
+  .chat-sidebar :global(.chat-container) {
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  .chat-sidebar :global(.chat-messages) {
+    flex: 1;
+    height: 0;
+    min-height: 0;
+  }
+
+  .contacts-sidebar {
+    height: 100%;
+    min-height: 0;
+  }
+
+  @media (max-width: 1000px) {
     .home-layout {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto;
     }
 
     .chat-sidebar {
       padding-top: 0;
+    }
+
+    .home-content,
+    .overview-section {
+      height: auto;
+    }
+
+    .overview-section :global(.overview-container) {
+      height: auto;
+      aspect-ratio: 16 / 9;
+    }
+
+    .chat-sidebar :global(.chat-container) {
+      height: auto;
+    }
+
+    .chat-sidebar {
+      height: auto;
+    }
+
+    .chat-sidebar :global(.chat-messages) {
+      flex: initial;
+      height: 300px;
+    }
+
+    .contacts-sidebar {
+      height: auto;
     }
   }
 </style>
