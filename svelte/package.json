@@ -46,7 +46,7 @@
 		"vitest-browser-svelte": "^2.2.1"
 	},
 	"dependencies": {
-		"svelte-carousel": "^1.0.25",
-		"svelte-video-player": "^2.2.0"
+		"@material-symbols-svg/svelte": "^0.15.0",
+		"svelte-carousel": "^1.0.25"
 	}
 }
