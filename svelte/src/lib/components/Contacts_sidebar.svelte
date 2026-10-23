@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ContactActivity from '$lib/components/ContactActivity.svelte';
+
   let { onDirectMessage }: { onDirectMessage?: (contact: string) => void } = $props();
 
   const contacts = [
@@ -10,6 +12,7 @@
 
   let activeContact = $state<string | null>(null);
   let selectedAction = $state('');
+  let activityContact = $state<(typeof contacts)[number] | null>(null);
 
   function toggleContact(name: string) {
     activeContact = activeContact === name ? null : name;
@@ -19,6 +22,9 @@
   function chooseAction(action: string, contact: string) {
     if (action === 'Send a direct message') {
       onDirectMessage?.(contact);
+      selectedAction = '';
+    } else if (action === 'View activity') {
+      activityContact = contacts.find((item) => item.name === contact) ?? null;
       selectedAction = '';
     } else {
       selectedAction = `${action} — ${contact} (coming soon)`;
@@ -39,6 +45,10 @@
 </script>
 
 <svelte:window onkeydown={handleWindowKeydown} onclick={handleWindowClick} />
+
+{#if activityContact}
+  <ContactActivity contact={activityContact} onClose={() => (activityContact = null)} />
+{/if}
 
 <aside class="contacts-sidebar">
   <section class="contacts-panel" aria-label="Contacts">
