@@ -1,8 +1,8 @@
 <script lang="ts">
   const contacts = [
-    { name: 'Julien', initials: 'AL', online: true },
-    { name: 'Léo', initials: 'JM', online: true },
-    { name: 'Bastien', initials: 'SL', online: false },
+    { name: 'Julien', initials: 'J', online: true },
+    { name: 'Léo', initials: 'L', online: true },
+    { name: 'Bastien', initials: 'B', online: false },
   ];
   const actions = ['Send a direct message', 'Invite to a room', 'View activity'];
 
@@ -81,7 +81,21 @@
     padding: 0.9rem 0.75rem;
     background: #18181b;
     color: #fff;
+    border-radius: 6px;
     box-sizing: border-box;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 8px 1px rgb(255 122 26 / 18%),
+      0 0 16px 3px rgb(255 122 26 / 8%);
+    transition: box-shadow 0.25s ease;
+  }
+
+  .contacts-panel:hover,
+  .contacts-panel:focus-within {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 8px 2px rgb(255 122 26 / 65%),
+      0 0 24px 6px rgb(255 122 26 / 30%);
   }
 
   .contacts-panel h2 {

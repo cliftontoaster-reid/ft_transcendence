@@ -1,5 +1,4 @@
 <script lang="ts">
-  // Liste des messages (démarre vide ou avec des vrais messages du serveur)
   let messages = $state<{ sender: string; text: string }[]>([]);
   let inputMessage = $state('');
 
@@ -7,7 +6,6 @@
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    // Ajout du message localement (en attendant la liaison avec le serveur/WebSocket)
     messages = [...messages, { sender: 'Moi', text: inputMessage }];
     inputMessage = '';
   }
@@ -35,7 +33,7 @@
       placeholder="Write your message..." 
       autocomplete="off"
     />
-    <button type="submit">Envoyer</button>
+    <button type="submit">Send</button>
   </form>
 </div>
 
@@ -44,7 +42,7 @@
     position: relative;
     background: #18181b;
     border: 1px solid #27272a;
-    border-radius: 12px;
+    border-radius: 6px;
     width: 100%;
     max-width: 450px;
     display: flex;
@@ -156,7 +154,8 @@
     color: white;
     border: none;
     padding: 0 1.25rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 100;
     cursor: pointer;
     transition: background 0.2s;
   }

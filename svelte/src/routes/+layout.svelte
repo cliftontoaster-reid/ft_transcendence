@@ -132,7 +132,7 @@
     font-weight: 800;
     font-size: 1.5rem;
     letter-spacing: 0.03em;
-    background: linear-gradient(110deg, #83367a 0%, #ff7a1a 38%, #d45e14 78%, #ffbb5c 100%);
+    background: linear-gradient(110deg, #fab183 0%, #ff7a1a 38%, #d45e14 78%, #ffbb5c 100%);
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 6px rgb(255 122 26 / 25%));

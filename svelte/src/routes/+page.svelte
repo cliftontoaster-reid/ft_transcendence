@@ -126,13 +126,15 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(240px, 280px) 120px;
     grid-template-rows: clamp(360px, 36vw, 560px) auto;
-    gap: 1rem;
+    column-gap: 0;
+    row-gap: 1rem;
     align-items: stretch;
   }
 
   .home-content {
     height: 100%;
     min-width: 0;
+    margin-left: calc(-1 * max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
   }
 
   .browse-section {
