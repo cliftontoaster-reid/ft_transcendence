@@ -1,0 +1,11 @@
+[package]
+name = "dionysus_plugin_tvmaze"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+dionysus_metadata_sdk = { path = "../../crates/dionysus_metadata_sdk", version = "0.1.0" }
+serde = { version = "1.0.229", features = ["derive"] }

@@ -17,7 +17,8 @@ use crate::proto::dionysus::encoder::v1::audio_job::AudioCodec as AudioCodecOneO
 use crate::proto::dionysus::encoder::v1::video_job::VideoCodec as VideoCodecOneOf;
 use crate::proto::dionysus::encoder::v1::{
   AudioCodec, AudioJob, JobResult, SegmentAudioRequest, SegmentAudioResponse, SegmentVideoRequest,
-  SegmentVideoResponse, VideoCodec, VideoJob, job_service_server::JobService,
+  SegmentVideoResponse, SplitTracksRequest, SplitTracksResponse, VideoCodec, VideoJob,
+  job_service_server::JobService,
 };
 
 pub struct JobServer {
@@ -412,6 +413,19 @@ impl JobService for JobServer {
     Ok(Response::new(SegmentAudioResponse {
       result: Some(result),
     }))
+  }
+
+  async fn split_tracks(
+    &self,
+    request: Request<SplitTracksRequest>,
+  ) -> Result<Response<SplitTracksResponse>, Status> {
+    let job = request.into_inner();
+
+    let permit = self.acquire_permit().await?;
+    let response = self.split(job).await?;
+    drop(permit);
+
+    Ok(Response::new(response))
   }
 }
 

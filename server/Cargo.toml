@@ -1,3 +1,5 @@
 [workspace]
 resolver = "3"
-members = ["crates/dionysus_db","crates/dionysus_ffmpeg", "crates/dionysus_media_server", "crates/dionysus_oidc"]
+members = ["crates/dionysus_db", "crates/dionysus_ffmpeg", "crates/dionysus_ffprobe", "crates/dionysus_media_importer", "crates/dionysus_media_server", "crates/dionysus_metadata", "crates/dionysus_metadata_model", "crates/dionysus_metadata_providers", "crates/dionysus_metadata_sdk", "crates/dionysus_metadata_wasm", "crates/dionysus_oidc", "plugins/fixture", "plugins/tvmaze"]
+
+default-members = ["crates/dionysus_db", "crates/dionysus_ffmpeg", "crates/dionysus_ffprobe", "crates/dionysus_media_importer", "crates/dionysus_media_server", "crates/dionysus_metadata", "crates/dionysus_metadata_model", "crates/dionysus_metadata_providers", "crates/dionysus_metadata_wasm", "crates/dionysus_oidc"]

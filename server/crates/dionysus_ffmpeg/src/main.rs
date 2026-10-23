@@ -1,6 +1,7 @@
 mod codec;
 mod jobs;
 mod proto;
+mod split;
 
 use jobs::JobServer;
 use proto::dionysus::encoder::v1::job_service_server::JobServiceServer;
