@@ -153,9 +153,9 @@
   }
 
   .nav-links a {
-    color: #ffffff;
+    color: #ffad5c;
     text-decoration: none;
-    transition: opacity 0.2s, color 0.2s;
+    transition: color 0.2s, filter 0.2s;
   }
 
   .nav-item {
@@ -165,9 +165,10 @@
     padding: 0.5rem;
   }
 
-  .nav-links a:hover {
-    color: #8f015f;
-    opacity: 1;
+  .nav-links a:hover,
+  .nav-links a:focus-visible {
+    color: #ff7a1a;
+    filter: drop-shadow(0 0 5px rgb(255 173 92 / 75%)) drop-shadow(0 0 14px rgb(255 122 26 / 55%));
   }
 
   /* setting icons */

@@ -55,6 +55,7 @@
   const minCategoryItemCount = Math.min(...carouselCategories.map(({ items }) => items.length));
 
   const searchQuery = getContext<SearchQueryState>(SEARCH_QUERY_CONTEXT);
+  let directMessageContact = $state<string | null>(null);
   let innerWidth = $state(browser ? window.innerWidth : 1200);
 
   let responsiveParticlesToShow = $derived.by(() => {
@@ -90,10 +91,13 @@
   </div>
 
   <aside class="chat-sidebar">
-    <Chat />
+    <Chat
+      {directMessageContact}
+      onBackToGlobalChat={() => (directMessageContact = null)}
+    />
   </aside>
 
-  <ContactsSidebar />
+  <ContactsSidebar onDirectMessage={(contact) => (directMessageContact = contact)} />
 
   <section class="browse-section" aria-label="Browse colors">
     {#if isSearching}

@@ -1,12 +1,25 @@
 <script lang="ts">
-  let messages = $state<{ sender: string; text: string }[]>([]);
+  type ChatMessage = { sender: string; text: string };
+
+  let {
+    directMessageContact = null,
+    onBackToGlobalChat
+  }: {
+    directMessageContact?: string | null;
+    onBackToGlobalChat?: () => void;
+  } = $props();
+
+  let messagesByConversation = $state<Record<string, ChatMessage[]>>({});
   let inputMessage = $state('');
+  let conversationKey = $derived(directMessageContact ? `dm:${directMessageContact}` : 'global');
+  let messages = $derived(messagesByConversation[conversationKey] ?? []);
 
   function sendMessage(e: Event) {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    const text = inputMessage.trim();
+    if (!text) return;
 
-    messages = [...messages, { sender: 'Moi', text: inputMessage }];
+    messagesByConversation[conversationKey] = [...messages, { sender: 'Moi', text }];
     inputMessage = '';
   }
 </script>
@@ -14,26 +27,39 @@
 <div class="chat-container">
   <div class="chat-header">
     <span class="status-dot"></span>
-    <h3>Chat</h3>
+    {#if directMessageContact}
+      <button class="back-button" type="button" onclick={onBackToGlobalChat} aria-label="Retour au chat général">
+        ←
+      </button>
+    {/if}
+    <h3>{directMessageContact ?? 'Chat général'}</h3>
   </div>
 
-  <div class="chat-messages">
+  <div class="chat-messages" aria-live="polite">
+    {#if messages.length === 0}
+      <p class="empty-chat">
+        {directMessageContact
+          ? `Commencez une conversation avec ${directMessageContact}.`
+          : 'Aucun message pour le moment.'}
+      </p>
+    {:else}
       {#each messages as msg}
         <div class="message {msg.sender === 'Moi' ? 'user' : 'other'}">
           <span class="sender">{msg.sender}</span>
           <p>{msg.text}</p>
         </div>
       {/each}
+    {/if}
   </div>
 
   <form class="chat-input-form" onsubmit={sendMessage}>
-    <input 
-      type="text" 
-      bind:value={inputMessage} 
-      placeholder="Write your message..." 
+    <input
+      type="text"
+      bind:value={inputMessage}
+      placeholder={directMessageContact ? `Message à ${directMessageContact}...` : 'Écrire un message...'}
       autocomplete="off"
     />
-    <button type="submit">Send</button>
+    <button type="submit">Envoyer</button>
   </form>
 </div>
 
@@ -85,6 +111,15 @@
     font-size: 1rem;
   }
 
+  .back-button {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #ffad5c;
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+
   .chat-messages {
     padding: 1rem;
     height: 300px;
@@ -99,6 +134,7 @@
     font-size: 0.85rem;
     text-align: center;
     margin: auto 0;
+    align-self: center;
   }
 
   .message {

@@ -1,4 +1,6 @@
 <script lang="ts">
+  let { onDirectMessage }: { onDirectMessage?: (contact: string) => void } = $props();
+
   const contacts = [
     { name: 'Julien', initials: 'J', online: true },
     { name: 'Léo', initials: 'L', online: true },
@@ -15,16 +17,28 @@
   }
 
   function chooseAction(action: string, contact: string) {
-    selectedAction = `${action} — ${contact} (coming soon)`;
+    if (action === 'Send a direct message') {
+      onDirectMessage?.(contact);
+      selectedAction = '';
+    } else {
+      selectedAction = `${action} — ${contact} (coming soon)`;
+    }
     activeContact = null;
   }
 
   function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') activeContact = null;
   }
+
+  function handleWindowClick(event: MouseEvent) {
+    if (!(event.target instanceof Element)) return;
+    if (event.target.closest('.contact, .contact-actions')) return;
+
+    activeContact = null;
+  }
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} />
+<svelte:window onkeydown={handleWindowKeydown} onclick={handleWindowClick} />
 
 <aside class="contacts-sidebar">
   <section class="contacts-panel" aria-label="Contacts">
