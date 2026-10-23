@@ -1,18 +1,27 @@
 <script lang="ts">
+  import ContactsSidebar from '$lib/components/Contacts_sidebar.svelte';
+
   type ChatMessage = { sender: string; text: string };
 
   let {
     directMessageContact = null,
-    onBackToGlobalChat
+    onBackToGlobalChat,
+    onDirectMessage
   }: {
     directMessageContact?: string | null;
     onBackToGlobalChat?: () => void;
+    onDirectMessage?: (contact: string) => void;
   } = $props();
 
   let messagesByConversation = $state<Record<string, ChatMessage[]>>({});
   let inputMessage = $state('');
   let conversationKey = $derived(directMessageContact ? `dm:${directMessageContact}` : 'global');
   let messages = $derived(messagesByConversation[conversationKey] ?? []);
+  let chatContacts = $derived(
+    Object.entries(messagesByConversation)
+      .filter(([key, conversationMessages]) => key.startsWith('dm:') && conversationMessages.length > 0)
+      .map(([key]) => key.slice(3)),
+  );
 
   function sendMessage(e: Event) {
     e.preventDefault();
@@ -25,60 +34,74 @@
 </script>
 
 <div class="chat-container">
-  <div class="chat-header">
-    <span class="status-dot"></span>
-    {#if directMessageContact}
-      <button class="back-button" type="button" onclick={onBackToGlobalChat} aria-label="Retour au chat général">
-        ←
-      </button>
-    {/if}
-    <h3>{directMessageContact ?? 'Chat général'}</h3>
-  </div>
+  <section class="conversation" aria-label="Conversation">
+    <div class="chat-header">
+      <span class="status-dot"></span>
+      {#if directMessageContact}
+        <button class="back-button" type="button" onclick={onBackToGlobalChat} aria-label="Retour au chat général">
+          ←
+        </button>
+      {/if}
+      <h3>{directMessageContact ?? 'Chat général'}</h3>
+    </div>
 
-  <div class="chat-messages" aria-live="polite">
-    {#if messages.length === 0}
-      <p class="empty-chat">
-        {directMessageContact
-          ? `Commencez une conversation avec ${directMessageContact}.`
-          : 'Aucun message pour le moment.'}
-      </p>
-    {:else}
-      {#each messages as msg}
-        <div class="message {msg.sender === 'Moi' ? 'user' : 'other'}">
-          <span class="sender">{msg.sender}</span>
-          <p>{msg.text}</p>
-        </div>
-      {/each}
-    {/if}
-  </div>
+    <div class="chat-messages" aria-live="polite">
+      {#if messages.length === 0}
+        <p class="empty-chat">
+          {directMessageContact
+            ? `Commencez une conversation avec ${directMessageContact}.`
+            : 'Aucun message pour le moment.'}
+        </p>
+      {:else}
+        {#each messages as msg}
+          <div class="message {msg.sender === 'Moi' ? 'user' : 'other'}">
+            <span class="sender">{msg.sender}</span>
+            <p>{msg.text}</p>
+          </div>
+        {/each}
+      {/if}
+    </div>
 
-  <form class="chat-input-form" onsubmit={sendMessage}>
-    <input
-      type="text"
-      bind:value={inputMessage}
-      placeholder={directMessageContact ? `Message à ${directMessageContact}...` : 'Écrire un message...'}
-      autocomplete="off"
-    />
-    <button type="submit">Envoyer</button>
-  </form>
+    <form class="chat-input-form" onsubmit={sendMessage}>
+      <input
+        type="text"
+        bind:value={inputMessage}
+        placeholder={directMessageContact
+          ? `Message à ${directMessageContact}...`
+          : 'Écrire un message...'}
+        autocomplete="off"
+      />
+      <button type="submit">Send</button>
+    </form>
+  </section>
+
+  <ContactsSidebar embedded {chatContacts} {onDirectMessage} />
 </div>
 
 <style>
   .chat-container {
     position: relative;
-    background: #18181b;
+    background: rgb(24 24 27 / 75%);
     border: 1px solid #27272a;
     border-radius: 6px;
     width: 100%;
-    max-width: 450px;
+    max-width: none;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     overflow: hidden;
     box-shadow:
       0 8px 24px rgba(0, 0, 0, 0.4),
       0 0 8px 1px rgb(255 122 26 / 18%),
       0 0 16px 3px rgb(255 122 26 / 8%);
     transition: box-shadow 0.25s ease;
+  }
+
+  .conversation {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
   }
 
   .chat-container:hover,
@@ -90,7 +113,7 @@
   }
 
   .chat-header {
-    background: #202024;
+    background: rgb(32 32 36 / 75%);
     padding: 1rem;
     display: flex;
     align-items: center;
@@ -121,8 +144,9 @@
   }
 
   .chat-messages {
+    flex: 1;
     padding: 1rem;
-    height: 300px;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -170,9 +194,10 @@
   }
 
   .chat-input-form {
+    flex: 0 0 auto;
     display: flex;
     border-top: 1px solid #27272a;
-    background: #121212;
+    background: rgb(18 18 18 / 75%);
   }
 
   .chat-input-form input {
@@ -186,6 +211,9 @@
   }
 
   .chat-input-form button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #8f015f;
     color: white;
     border: none;
@@ -198,5 +226,15 @@
 
   .chat-input-form button:hover {
     background: #a2026d;
+  }
+
+  @media (max-width: 520px) {
+    .chat-container {
+      flex-direction: column;
+    }
+
+    .conversation {
+      min-height: 300px;
+    }
   }
 </style>

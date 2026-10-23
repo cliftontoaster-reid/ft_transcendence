@@ -1,18 +1,37 @@
 <script lang="ts">
   import ContactActivity from '$lib/components/ContactActivity.svelte';
 
-  let { onDirectMessage }: { onDirectMessage?: (contact: string) => void } = $props();
+  let {
+    onDirectMessage,
+    embedded = false,
+    chatContacts = []
+  }: {
+    onDirectMessage?: (contact: string) => void;
+    embedded?: boolean;
+    chatContacts?: string[];
+  } = $props();
 
-  const contacts = [
+  let contacts = $state([
     { name: 'Julien', initials: 'J', online: true },
     { name: 'Léo', initials: 'L', online: true },
     { name: 'Bastien', initials: 'B', online: false },
-  ];
+  ]);
   const actions = ['Send a direct message', 'Invite to a room', 'View activity'];
 
   let activeContact = $state<string | null>(null);
   let selectedAction = $state('');
   let activityContact = $state<(typeof contacts)[number] | null>(null);
+  let contactFilter = $state('all');
+  let isAddContactOpen = $state(false);
+  let newContactName = $state('');
+  let addContactError = $state('');
+  let visibleContacts = $derived(
+    contacts.filter((contact) => {
+      if (contactFilter === 'online') return contact.online;
+      if (contactFilter === 'chats') return chatContacts.includes(contact.name);
+      return true;
+    }),
+  );
 
   function toggleContact(name: string) {
     activeContact = activeContact === name ? null : name;
@@ -32,8 +51,29 @@
     activeContact = null;
   }
 
+  function addContact(event: SubmitEvent) {
+    event.preventDefault();
+    const name = newContactName.trim();
+    if (!name) {
+      addContactError = 'Enter a contact name.';
+      return;
+    }
+    if (contacts.some((contact) => contact.name.toLowerCase() === name.toLowerCase())) {
+      addContactError = 'This contact is already on your list.';
+      return;
+    }
+
+    contacts.push({ name, initials: name.charAt(0).toUpperCase(), online: false });
+    newContactName = '';
+    addContactError = '';
+    isAddContactOpen = false;
+  }
+
   function handleWindowKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') activeContact = null;
+    if (event.key === 'Escape') {
+      activeContact = null;
+      isAddContactOpen = false;
+    }
   }
 
   function handleWindowClick(event: MouseEvent) {
@@ -50,11 +90,51 @@
   <ContactActivity contact={activityContact} onClose={() => (activityContact = null)} />
 {/if}
 
-<aside class="contacts-sidebar">
+<aside class="contacts-sidebar" class:embedded>
   <section class="contacts-panel" aria-label="Contacts">
-    <h2>Contacts</h2>
+    <div class="contacts-heading">
+      <h2>Contacts</h2>
+      <div class="contact-toolbar">
+        <label class="contact-filter-label">
+          <span class="visually-hidden">Filter contacts</span>
+          <select bind:value={contactFilter} aria-label="Filter contacts">
+            <option value="all">All</option>
+            <option value="online">Online</option>
+            <option value="chats">In chats</option>
+          </select>
+        </label>
+        <button
+          class="add-contact-button"
+          type="button"
+          aria-label="Add contact"
+          aria-expanded={isAddContactOpen}
+          onclick={() => {
+            isAddContactOpen = !isAddContactOpen;
+            addContactError = '';
+          }}
+        >
+          <span aria-hidden="true">+</span>
+          <span>Add</span>
+        </button>
+      </div>
+    </div>
+    {#if isAddContactOpen}
+      <form class="add-contact-form" onsubmit={addContact}>
+        <label class="visually-hidden" for="new-contact-name">Contact name</label>
+        <input
+          id="new-contact-name"
+          bind:value={newContactName}
+          placeholder="Contact name"
+          autocomplete="off"
+        />
+        <button type="submit">Add</button>
+        {#if addContactError}
+          <p class="add-contact-error" role="alert">{addContactError}</p>
+        {/if}
+      </form>
+    {/if}
     <ul class="contact-list">
-      {#each contacts as contact (contact.name)}
+      {#each visibleContacts as contact (contact.name)}
         <li class="contact-item">
           <button
             class="contact"
@@ -100,6 +180,13 @@
     box-sizing: border-box;
   }
 
+  .contacts-sidebar.embedded {
+    width: 140px;
+    min-width: 140px;
+    margin: 0;
+    height: 100%;
+  }
+
   .contacts-panel {
     height: 100%;
     padding: 0.9rem 0.75rem;
@@ -114,6 +201,19 @@
     transition: box-shadow 0.25s ease;
   }
 
+  .embedded .contacts-panel {
+    height: 100%;
+    background: rgb(24 24 27 / 75%);
+    border-radius: 0;
+    border-left: 1px solid #27272a;
+    box-shadow: none;
+  }
+
+  .embedded .contacts-panel:hover,
+  .embedded .contacts-panel:focus-within {
+    box-shadow: none;
+  }
+
   .contacts-panel:hover,
   .contacts-panel:focus-within {
     box-shadow:
@@ -123,9 +223,154 @@
   }
 
   .contacts-panel h2 {
-    margin: 0 0 0.75rem;
+    margin: 0;
     color: #ffad5c;
     font-size: 0.9rem;
+  }
+
+  .contacts-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .contacts-heading {
+    display: grid;
+    justify-items: start;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .contact-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+  }
+
+  .contact-filter-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .contact-filter-label select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .add-contact-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    height: 22px;
+    padding: 0 0.25rem;
+    border: 1px solid rgb(255 173 92 / 65%);
+    border-radius: 4px;
+    background: #35242b;
+    color: #ffad5c;
+    font-size: 0.65rem;
+    line-height: 1;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .add-contact-button:hover,
+  .add-contact-button:focus-visible {
+    border-color: #ffad5c;
+    background: #472b28;
+    box-shadow: 0 0 6px rgb(255 122 26 / 55%);
+  }
+
+  .add-contact-button:focus-visible,
+  .add-contact-form input:focus-visible,
+  .add-contact-form button:focus-visible {
+    outline: 2px solid #ffad5c;
+    outline-offset: 2px;
+  }
+
+  .add-contact-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .add-contact-form input {
+    min-width: 0;
+    padding: 0.35rem;
+    border: 1px solid #3f3f46;
+    border-radius: 4px;
+    background: #202024;
+    color: #fff;
+    font-size: 0.7rem;
+  }
+
+  .add-contact-form button {
+    padding: 0 0.45rem;
+    border: 1px solid rgb(255 173 92 / 65%);
+    border-radius: 4px;
+    background: #35242b;
+    color: #ffad5c;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+
+  .add-contact-form button:hover {
+    background: #472b28;
+  }
+
+  .add-contact-error {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #fca5a5;
+    font-size: 0.65rem;
+  }
+
+  .contact-filter-label select {
+    height: 22px;
+    padding: 0 0.25rem;
+    border: 1px solid rgb(255 173 92 / 65%);
+    border-radius: 4px;
+    background: #35242b;
+    color: #ffad5c;
+    font-size: 0.65rem;
+    text-align: center;
+    text-align-last: center;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .contact-filter-label select:hover,
+  .contact-filter-label select:focus-visible {
+    border-color: #ffad5c;
+    background: #472b28;
+    box-shadow: 0 0 6px rgb(255 122 26 / 55%);
+  }
+
+  .contact-filter-label select:focus-visible {
+    outline: 2px solid #ffad5c;
+    outline-offset: 2px;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
   }
 
   .contact-list {
@@ -247,6 +492,16 @@
     .contacts-panel {
       height: auto;
     }
+
+    .contacts-sidebar.embedded {
+      width: 140px;
+      min-width: 140px;
+      height: 100%;
+    }
+
+    .embedded .contacts-panel {
+      height: 100%;
+    }
   }
 
   @media (max-width: 520px) {
@@ -262,6 +517,18 @@
 
     .contact-item {
       flex: 0 0 auto;
+    }
+
+    .contacts-sidebar.embedded {
+      width: 100%;
+      min-width: 0;
+      height: auto;
+    }
+
+    .embedded .contacts-panel {
+      height: auto;
+      border-top: 1px solid #27272a;
+      border-left: 0;
     }
   }
 </style>
