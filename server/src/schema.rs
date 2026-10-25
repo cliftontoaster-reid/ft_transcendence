@@ -176,6 +176,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_friends (user_id, friend_id) {
+        user_id -> Uuid,
+        friend_id -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     viewer_profiles (id) {
         id -> Uuid,
         user_id -> Uuid,
@@ -242,6 +250,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   roles,
   sessions,
   user_roles,
+  user_friends,
   users,
   viewer_profiles,
   watch_history,

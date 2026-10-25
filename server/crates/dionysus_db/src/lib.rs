@@ -11,7 +11,7 @@ pub mod models;
 pub mod schema;
 pub mod types;
 
-use schema::users;
+use schema::{user_friends, users};
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../../migrations");
 
@@ -38,15 +38,57 @@ pub fn find_user(conn: &mut PgConnection, user_id: Uuid) -> QueryResult<Option<m
     .optional()
 }
 
+pub fn create_user(
+  conn: &mut PgConnection,
+  new_user: models::NewUser<'_>,
+) -> QueryResult<models::User> {
+  diesel::insert_into(users::table)
+    .values(new_user)
+    .returning(models::User::as_returning())
+    .get_result(conn)
+}
+
 pub fn update_user_profile(
   conn: &mut PgConnection,
   user_id: Uuid,
   changes: models::UserProfileChanges<'_>,
 ) -> QueryResult<models::User> {
-  diesel::update(users::table.find(user_id))
-    .set(changes)
-    .returning(models::User::as_returning())
-    .get_result(conn)
+  if let Some(username) = changes.username {
+    diesel::update(users::table.find(user_id))
+      .set(users::username.eq(username))
+      .execute(conn)?;
+  }
+  if let Some(display_name) = changes.display_name {
+    diesel::update(users::table.find(user_id))
+      .set(users::display_name.eq(display_name))
+      .execute(conn)?;
+  }
+  if let Some(bio) = changes.bio {
+    diesel::update(users::table.find(user_id))
+      .set(users::bio.eq(bio))
+      .execute(conn)?;
+  }
+  if let Some(avatar_url) = changes.avatar_url {
+    diesel::update(users::table.find(user_id))
+      .set(users::avatar_url.eq(avatar_url))
+      .execute(conn)?;
+  }
+  if let Some(age_bracket) = changes.age_bracket {
+    diesel::update(users::table.find(user_id))
+      .set(users::age_bracket.eq(age_bracket))
+      .execute(conn)?;
+  }
+
+  find_user(conn, user_id)?.ok_or(diesel::result::Error::NotFound)
+}
+
+pub fn list_user_friends(conn: &mut PgConnection, user_id: Uuid) -> QueryResult<Vec<models::User>> {
+  user_friends::table
+    .inner_join(users::table.on(users::id.eq(user_friends::friend_id)))
+    .filter(user_friends::user_id.eq(user_id))
+    .select(models::User::as_select())
+    .order(users::username.asc().nulls_last())
+    .load(conn)
 }
 
 pub fn validate_profile(

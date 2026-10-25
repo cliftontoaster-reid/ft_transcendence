@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 chrono = "0.4"
+dionysus_db = { path = "../dionysus_db" }
+diesel = { version = "2.3.13", features = ["postgres"] }
 prost = "0.14.4"
 prost-types = "0.14.4"
 rust_ffmpeg = "1.0.0"
@@ -14,6 +16,7 @@ tonic = "0.14.6"
 tonic-prost = "0.14.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = "1.26.1"
 
 [build-dependencies]
 tonic-prost-build = "0.14.6"

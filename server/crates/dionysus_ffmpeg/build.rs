@@ -16,6 +16,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
   let proto_root = manifest.join("../../../proto").canonicalize()?;
   let googleapis = manifest.join("../../../third_party/googleapis");
+  let mut includes = vec![proto_root.clone(), googleapis];
+  if let Some(include) = std::env::var_os("PROTOC_INCLUDE") {
+    includes.push(PathBuf::from(include));
+  }
+  for include in ["/usr/include", "/usr/local/include"] {
+    let path = PathBuf::from(include);
+    if path.is_dir() {
+      includes.push(path);
+    }
+  }
 
   let mut protos = Vec::new();
   find_protos(&proto_root, &mut protos);
@@ -23,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   tonic_prost_build::configure()
     .build_server(true)
-    .compile_protos(&protos, &[proto_root, googleapis])?;
+    .compile_protos(&protos, &includes)?;
 
   for p in &protos {
     println!("cargo:rerun-if-changed={}", p.display());

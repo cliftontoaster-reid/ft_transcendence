@@ -1,0 +1,32 @@
+[scan]
+exclude = [
+    "target/",
+    "node_modules/",
+]
+
+[detectors]
+disable = []
+
+[detectors.severity]
+
+[detectors.languages]
+
+[detectors.file_size]
+threshold = 400
+severity_at = 600
+
+[detectors.complexity]
+cyclomatic_threshold = 10
+length_threshold = 50
+param_threshold = 6
+nesting_threshold = 5
+
+[detectors.dead_pub]
+ignore_paths = []
+
+[detectors.duplicates]
+min_lines = 8
+
+[detectors.slop]
+unwrap_threshold = 10
+any_threshold = 5
