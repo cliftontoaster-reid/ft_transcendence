@@ -3,7 +3,6 @@ mod cache;
 mod config;
 mod manifest;
 mod params;
-mod proto;
 mod segments;
 mod source;
 mod window;
