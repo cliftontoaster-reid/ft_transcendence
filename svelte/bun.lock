@@ -5,7 +5,7 @@
     "": {
       "name": "svelte",
       "dependencies": {
-        "@material-symbols-svg/svelte": "^0.15.0",
+        "@material-symbols-svg/svelte": "^0.16.0",
         "svelte-carousel": "^1.0.25",
       },
       "devDependencies": {
@@ -124,7 +124,7 @@
 
     "@lix-js/sdk": ["@lix-js/sdk@0.19.0", "", { "dependencies": { "@bytecodealliance/jco-transpile": "0.13.0", "binaryen": "130.0.0", "fflate": "^0.8.3" } }, "sha512-ks7hKZdJGH0APlSLWtFYCXDO3yIoleoPqzLgkZYtMbaiWRN2Ih772tNGGBZFLKbutq6DuNRwcjNkG94KqWRbBA=="],
 
-    "@material-symbols-svg/svelte": ["@material-symbols-svg/svelte@0.15.0", "", { "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-jdX1GejRLv0u95qDe2QLl5PL4rFLtehI+lvYtr7PPRGZ6YPcRC9ApJ1VlrK/n8hLpjvoar2/2Rfa6j3jX1tPpw=="],
+    "@material-symbols-svg/svelte": ["@material-symbols-svg/svelte@0.16.0", "", { "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-AKHPbEJE5L9pOA05Kgn3GfWF/fU4MuIzGaJ/Sr4f/EJCq6mR2FkVqhMzuFrOLHAnC/uk1AAqf2FuEiEvri1hKQ=="],
 
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
 
