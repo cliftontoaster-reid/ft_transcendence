@@ -29,7 +29,7 @@
     const moveX = Math.abs(event.clientX - startX);
     const moveY = Math.abs(event.clientY - startY);
     
-    if (moveX > 15 || moveY > 15) {
+    if (moveX > 1 || moveY > 1) {
       isDragging = true;
     }
   }
@@ -37,7 +37,7 @@
   function handleClick(event: MouseEvent) {
     const elapsedTime = Date.now() - startTime;
 
-    if (isDragging && elapsedTime > 250) {
+    if (isDragging && elapsedTime > 1) {
       event.preventDefault();
       event.stopPropagation();
     }
