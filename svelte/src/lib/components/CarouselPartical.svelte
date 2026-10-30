@@ -16,34 +16,25 @@
   let startTime = 0;
   let startX = 0;
   let startY = 0;
-  let isDragging = false;
 
   function handlePointerDown(event: PointerEvent) {
     startTime = Date.now();
     startX = event.clientX;
     startY = event.clientY;
-    isDragging = false;
-  }
-
-  function handlePointerMove(event: PointerEvent) {
-    const moveX = Math.abs(event.clientX - startX);
-    const moveY = Math.abs(event.clientY - startY);
-    
-    if (moveX > 1 || moveY > 1) {
-      isDragging = true;
-    }
   }
 
   function handleClick(event: MouseEvent) {
+    const moveX = Math.abs(event.clientX - startX);
+    const moveY = Math.abs(event.clientY - startY);
     const elapsedTime = Date.now() - startTime;
 
-    if (isDragging && elapsedTime > 1) {
+    // Merged single check: if it moved far AND took longer than a quick tap
+    if ((moveX > 1 || moveY > 1) && elapsedTime > 100) {
       event.preventDefault();
       event.stopPropagation();
     }
-    
-    isDragging = false;
   }
+
 </script>
 
 <a

@@ -19,7 +19,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { getContext } from 'svelte';
-  import Color from '$lib/components/Color.svelte';
+  import Color from '$lib/components/CarouselPartical.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
   import Chat from '$lib/components/Chat.svelte';
   import Overview from '$lib/components/Overview.svelte';
