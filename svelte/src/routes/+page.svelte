@@ -69,8 +69,7 @@
   let filteredColors = $derived(
     colors.filter(
       (color) =>
-      color.text.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      color.summary.toLowerCase().includes(searchQuery.value.toLowerCase()),
+      color.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
     ),
   );
   let isSearching = $derived(searchQuery.value.trim().length > 0);

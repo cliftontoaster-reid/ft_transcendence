@@ -4,11 +4,11 @@
   let {
     slug,
     color,
-    text
+    title
   }: {
     slug: string;
     color: string;
-    text: string;
+    title: string;
   } = $props();
 
   const colorUrl = $derived(resolve(`/colors/${slug}`));
@@ -49,7 +49,7 @@
 <a
   class="color-card"
   href={colorUrl}
-  aria-label={`View summary for ${text}`}
+  aria-label={`View summary for ${title}`}
   draggable="false"
   onpointerdown={handlePointerDown}
   onpointermove={handlePointerMove}
@@ -59,7 +59,7 @@
     class="color-content"
     style={`background-color: ${color}`}
   >
-    <span>{text}</span>
+    <span>{title}</span>
   </div>
 </a>
 

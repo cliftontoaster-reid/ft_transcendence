@@ -16,7 +16,7 @@
   {#if colorItem}
     <div class="color-preview" style={`background-color: ${colorItem.color}`}></div>
     
-    <h1 class="color-title">{colorItem.text}</h1>
+    <h1 class="color-title">{colorItem.title}</h1>
     <p class="color-summary">{colorItem.summary}</p>
   {:else}
     <h1>Color not found</h1>
