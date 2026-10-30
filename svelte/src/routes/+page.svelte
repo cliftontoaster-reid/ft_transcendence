@@ -155,6 +155,9 @@
   }
 
   .grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0rem;
     width: 100%;
     margin: 1rem auto 0;
     padding: 1rem 0;
