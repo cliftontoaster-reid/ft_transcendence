@@ -8,7 +8,7 @@ base64 = "0.22"
 rocket = { version = "0.5.1", features = ["json"] }
 redis = { version = "0.32", features = ["tokio-comp"] }
 serde_json = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 openidconnect = "4"
 reqwest = { version = "0.12", default-features = false, features = [
   "json",
