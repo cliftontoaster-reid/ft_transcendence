@@ -1,8 +1,8 @@
 use rust_ffmpeg::{Capabilities, CodecOptions};
 
-use crate::proto::dionysus::encoder::v1::RateControl;
-use crate::proto::dionysus::encoder::v1::rate_control::Mode;
-use crate::proto::dionysus::encoder::v1::{
+use dionysus_proto::dionysus::encoder::v1::RateControl;
+use dionysus_proto::dionysus::encoder::v1::rate_control::Mode;
+use dionysus_proto::dionysus::encoder::v1::{
   AudioCodec, Filter, HardwareDriver, Resolution, VideoCodec,
 };
 
