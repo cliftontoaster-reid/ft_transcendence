@@ -8,15 +8,11 @@
   const backUrl = $derived(resolve('/'));
 </script>
 
-<div class="top-bar">
-  <a href={backUrl} class="back-link">← Back to colors</a>
-</div>
-
 <main>
   {#if colorItem}
     <div class="color-preview" style={`background-color: ${colorItem.color}`}></div>
     
-    <h1 class="color-title">{colorItem.text}</h1>
+    <h1 class="color-title">{colorItem.title}</h1>
     <p class="color-summary">{colorItem.summary}</p>
   {:else}
     <h1>Color not found</h1>
@@ -25,13 +21,6 @@
 </main>
 
 <style>
-  .top-bar {
-    position: absolute;
-    top: 25px;
-    left: 25px;
-    z-index: 10;
-  }
-
   .back-link {
     color: white;
     text-decoration: none;

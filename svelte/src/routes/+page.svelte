@@ -19,7 +19,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { getContext } from 'svelte';
-  import Color from '$lib/components/Color.svelte';
+  import Color from '$lib/components/CarouselPartical.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
   import Chat from '$lib/components/Chat.svelte';
   import Overview from '$lib/components/Overview.svelte';
@@ -69,8 +69,7 @@
   let filteredColors = $derived(
     colors.filter(
       (color) =>
-      color.text.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      color.summary.toLowerCase().includes(searchQuery.value.toLowerCase()),
+      color.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
     ),
   );
   let isSearching = $derived(searchQuery.value.trim().length > 0);
@@ -155,6 +154,9 @@
   }
 
   .grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0rem;
     width: 100%;
     margin: 1rem auto 0;
     padding: 1rem 0;
