@@ -1340,9 +1340,14 @@ dependencies = [
 name = "dionysus_chat"
 version = "0.1.0"
 dependencies = [
+ "dionysus_proto",
+ "futures-util",
+ "prost",
  "tokio",
  "tokio-tungstenite",
  "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

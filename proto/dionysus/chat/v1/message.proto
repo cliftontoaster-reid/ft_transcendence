@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package dionysus.chat.v1;
+
+import "dionysus/common/v1/asset.proto";
+import "dionysus/room/v1/room.proto";
+import "dionysus/user/v1/user.proto";
+import "google/type/datetime.proto";
+
+message MessageID {
+  dionysus.common.v1.UUID value = 1;
+}
+
+message Message {
+  MessageID id = 1;
+  dionysus.user.v1.UserID sender_id = 2;
+  dionysus.room.v1.RoomID room_id = 3;
+
+  string message = 4;
+
+  optional MessageID replies_to = 5;
+
+  google.type.DateTime created_at = 100;
+  google.type.DateTime updated_at = 101;
+}
+
+message SendMessage {
+  dionysus.room.v1.RoomID room_id = 1;
+
+  string message = 2;
+
+  optional MessageID replies_to = 3;
+}
+
+message EditMessage {
+  MessageID id = 1;
+
+  string new_message = 2;
+}
+
+message Identify {
+  dionysus.user.v1.UserID user_id = 1;
+
+  string token = 2;
+}
+
+message JoinChannel {
+  dionysus.room.v1.RoomID channel_id = 1;
+}
+
+message LeaveChannel {
+  dionysus.room.v1.RoomID channel_id = 1;
+}
+
+message Ping {}
+
+message Pong {}
+
+message Error {
+  string code = 1;
+
+  string message = 2;
+}
+
+message UserJoined {
+  dionysus.room.v1.RoomID channel_id = 1;
+
+  dionysus.user.v1.User user = 2;
+}
+
+message UserLeft {
+  dionysus.room.v1.RoomID channel_id = 1;
+
+  dionysus.user.v1.UserID user_id = 2;
+}
+
+message MessageEdited {
+  MessageID id = 1;
+
+  string new_message = 2;
+
+  google.type.DateTime updated_at = 3;
+}
+
+message ChannelSnapshot {
+  dionysus.room.v1.Room room = 1;
+
+  repeated Message recent_messages = 2;
+}
+
+message ClientFrame {
+  oneof payload {
+    Identify identify = 1;
+    JoinChannel join = 2;
+    LeaveChannel leave = 3;
+    SendMessage send = 4;
+    EditMessage edit = 5;
+    Ping ping = 6;
+  }
+}
+
+message ServerFrame {
+  oneof payload {
+    Message message = 1;
+    MessageEdited edited = 2;
+    UserJoined joined = 3;
+    UserLeft left = 4;
+    ChannelSnapshot snapshot = 5;
+    Pong pong = 6;
+    Error error = 7;
+  }
+}
