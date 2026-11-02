@@ -1,9 +1,8 @@
 use crate::{
   schema::{
-    media, media_external_ids, media_images, media_track, media_translations,
-  metadata_source, my_list,
-    oidc_identities, permissions, role_permissions, roles, sessions, user_roles, users,
-    viewer_profiles, watch_history, watch_progress,
+    media, media_external_ids, media_images, media_track, media_translations, metadata_source,
+    my_list, oidc_identities, permissions, role_permissions, roles, sessions, user_friends,
+    user_roles, users, viewer_profiles, watch_history, watch_progress,
   },
   types::{
     media_image_type::MediaImageType, media_kind::MediaKind, media_track_type::MediaTrackType,
@@ -118,6 +117,9 @@ pub struct User {
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
   pub disabled: bool,
+  pub username: Option<String>,
+  pub bio: Option<String>,
+  pub age_bracket: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -126,6 +128,34 @@ pub struct NewUser<'a> {
   pub display_name: &'a str,
   pub email: Option<&'a str>,
   pub avatar_url: Option<&'a str>,
+  pub username: Option<&'a str>,
+  pub bio: Option<&'a str>,
+  pub age_bracket: Option<i32>,
+}
+
+#[derive(Default)]
+pub struct UserProfileChanges<'a> {
+  pub username: Option<&'a str>,
+  pub display_name: Option<&'a str>,
+  pub bio: Option<&'a str>,
+  pub avatar_url: Option<&'a str>,
+  pub age_bracket: Option<i32>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Debug)]
+#[diesel(primary_key(user_id, friend_id))]
+#[diesel(table_name = user_friends)]
+pub struct UserFriend {
+  pub user_id: Uuid,
+  pub friend_id: Uuid,
+  pub created_at: DateTime<Utc>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = user_friends)]
+pub struct NewUserFriend {
+  pub user_id: Uuid,
+  pub friend_id: Uuid,
 }
 
 // --- Viewer profiles ---
