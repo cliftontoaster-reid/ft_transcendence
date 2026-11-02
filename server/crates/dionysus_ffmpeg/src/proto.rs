@@ -1,6 +1,11 @@
 // Generated types are included wholesale; only a subset is used by the encoder.
 #[allow(dead_code)]
 pub mod dionysus {
+  pub mod chat {
+    pub mod v1 {
+      tonic::include_proto!("dionysus.chat.v1");
+    }
+  }
   pub mod common {
     pub mod v1 {
       tonic::include_proto!("dionysus.common.v1");

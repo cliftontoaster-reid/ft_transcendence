@@ -1,3 +1,4 @@
+mod chat;
 mod codec;
 mod jobs;
 mod proto;
@@ -6,8 +7,9 @@ mod user;
 use dionysus_db::{establish_connection, run_migrations};
 use jobs::JobServer;
 use proto::dionysus::{
+  chat::v1::chat_service_server::ChatServiceServer,
   encoder::v1::job_service_server::JobServiceServer,
-  user::v1::{chat_service_server::ChatServiceServer, user_service_server::UserServiceServer},
+  user::v1::user_service_server::UserServiceServer,
 };
 
 #[tokio::main]
@@ -29,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let mut connection = establish_connection();
   run_migrations(&mut connection)?;
   let user_service = user::UserServiceImpl::new(connection);
-  let chat_service = user::ChatServiceImpl::new();
+  let chat_service = chat::ChatServiceImpl::new();
   tracing::info!(%addr, max_concurrent, "starting JobService");
   println!("Starting JobService on {addr} (max {max_concurrent} concurrent jobs)");
 

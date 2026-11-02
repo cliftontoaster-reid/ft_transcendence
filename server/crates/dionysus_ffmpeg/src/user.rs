@@ -1,8 +1,4 @@
-use std::{
-  collections::HashMap,
-  sync::{Arc, Mutex},
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::Mutex;
 
 use diesel::{PgConnection, result::Error as DieselError};
 use dionysus_db::{
@@ -15,10 +11,8 @@ use uuid::Uuid;
 
 use crate::proto::dionysus::user::v1::{
   AgeBracket, CreateProfileRequest, CreateProfileResponse, GetFriendListRequest,
-  GetFriendListResponse, GetMessagesRequest, GetMessagesResponse, GetProfileRequest,
-  GetProfileResponse, Message, SendMessageRequest, SendMessageResponse, UpdateProfileRequest,
-  UpdateProfileResponse, User as ProtoUser, UserId, chat_service_server::ChatService,
-  user_service_server::UserService,
+  GetFriendListResponse, GetProfileRequest, GetProfileResponse, UpdateProfileRequest,
+  UpdateProfileResponse, User as ProtoUser, UserId, user_service_server::UserService,
 };
 
 pub struct UserServiceImpl {
@@ -75,90 +69,6 @@ impl UserServiceImpl {
     let bracket = AgeBracket::try_from(value)
       .map_err(|_| Status::invalid_argument("age must be a valid AgeBracket"))?;
     Ok((bracket != AgeBracket::Unspecified).then_some(value))
-  }
-}
-
-pub struct ChatServiceImpl {
-  messages: Arc<Mutex<HashMap<String, Vec<Message>>>>,
-}
-
-impl ChatServiceImpl {
-  pub fn new() -> Self {
-    Self {
-      messages: Arc::new(Mutex::new(HashMap::new())),
-    }
-  }
-
-  fn conversation_key(user_a: &str, user_b: &str) -> String {
-    if user_a <= user_b {
-      format!("{user_a}:{user_b}")
-    } else {
-      format!("{user_b}:{user_a}")
-    }
-  }
-
-  fn next_message_id(messages: &[Message]) -> u64 {
-    messages.iter().map(|message| message.id).max().unwrap_or(0) + 1
-  }
-}
-
-#[tonic::async_trait]
-impl ChatService for ChatServiceImpl {
-  async fn send_message(
-    &self,
-    request: Request<SendMessageRequest>,
-  ) -> Result<Response<SendMessageResponse>, Status> {
-    let request = request.into_inner();
-    let sender = request.sender_id.ok_or_else(|| Status::invalid_argument("sender_id is required"))?;
-    let receiver = request.receiver_id.ok_or_else(|| Status::invalid_argument("receiver_id is required"))?;
-
-    let sender_id = UserServiceImpl::parse_id(&sender.value, "sender_id")?;
-    let receiver_id = UserServiceImpl::parse_id(&receiver.value, "receiver_id")?;
-    let key = Self::conversation_key(&sender_id.to_string(), &receiver_id.to_string());
-
-    let now = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .map_err(|_| Status::internal("system clock is before the UNIX epoch"))?
-      .as_millis() as i64;
-
-    let mut storage = self
-      .messages
-      .lock()
-      .map_err(|_| Status::internal("message storage lock poisoned"))?;
-    let entry = storage.entry(key).or_default();
-    let message = Message {
-      id: Self::next_message_id(entry),
-      sender_id: Some(sender),
-      receiver_id: Some(receiver),
-      content: request.content,
-      timestamp: now,
-    };
-    entry.push(message.clone());
-
-    Ok(Response::new(SendMessageResponse {
-      message: Some(message),
-    }))
-  }
-
-  async fn get_messages(
-    &self,
-    request: Request<GetMessagesRequest>,
-  ) -> Result<Response<GetMessagesResponse>, Status> {
-    let request = request.into_inner();
-    let user_id = request.user_id.ok_or_else(|| Status::invalid_argument("user_id is required"))?;
-    let other_user_id = request.other_user_id.ok_or_else(|| Status::invalid_argument("other_user_id is required"))?;
-
-    let user_uuid = UserServiceImpl::parse_id(&user_id.value, "user_id")?;
-    let other_uuid = UserServiceImpl::parse_id(&other_user_id.value, "other_user_id")?;
-    let key = Self::conversation_key(&user_uuid.to_string(), &other_uuid.to_string());
-
-    let storage = self
-      .messages
-      .lock()
-      .map_err(|_| Status::internal("message storage lock poisoned"))?;
-    let messages = storage.get(&key).cloned().unwrap_or_default();
-
-    Ok(Response::new(GetMessagesResponse { messages }))
   }
 }
 
