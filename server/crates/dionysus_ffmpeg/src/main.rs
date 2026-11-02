@@ -1,16 +1,10 @@
 mod chat;
 mod codec;
 mod jobs;
-mod proto;
-mod user;
+mod split;
 
-use dionysus_db::{establish_connection, run_migrations};
+use dionysus_proto::dionysus::encoder::v1::job_service_server::JobServiceServer;
 use jobs::JobServer;
-use proto::dionysus::{
-  chat::v1::chat_service_server::ChatServiceServer,
-  encoder::v1::job_service_server::JobServiceServer,
-  user::v1::user_service_server::UserServiceServer,
-};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -28,17 +22,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     .parse()?;
 
   let server = JobServer::new(max_concurrent).await;
-  let mut connection = establish_connection();
-  run_migrations(&mut connection)?;
-  let user_service = user::UserServiceImpl::new(connection);
-  let chat_service = chat::ChatServiceImpl::new();
   tracing::info!(%addr, max_concurrent, "starting JobService");
   println!("Starting JobService on {addr} (max {max_concurrent} concurrent jobs)");
 
   tonic::transport::Server::builder()
     .add_service(JobServiceServer::new(server))
-    .add_service(UserServiceServer::new(user_service))
-    .add_service(ChatServiceServer::new(chat_service))
     .serve(addr)
     .await?;
 

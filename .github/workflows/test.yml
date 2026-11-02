@@ -118,6 +118,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
 
       - name: Install Rust system dependencies
         run: sudo apt-get update && sudo apt-get install --yes ffmpeg protobuf-compiler
@@ -134,11 +136,17 @@ jobs:
         run: diesel migration run
 
       - name: Cargo test (workspace)
-        run: |
-          if [ -f Cargo.lock ]; then
-            cargo test --locked --verbose
-          else
-            cargo test --verbose
-          fi
+        run: cargo test --locked --verbose
+
+      - name: Cargo test (WASM SDK + example plugin, native)
+        run: cargo test --locked -p dionysus_metadata_sdk -p dionysus_plugin_tvmaze
+
+      - name: Cargo build (plugins for wasm32-wasip2)
+        run: >
+          cargo build --locked
+          -p dionysus_metadata_sdk
+          -p dionysus_plugin_fixture
+          -p dionysus_plugin_tvmaze
+          --target wasm32-wasip2 --release
 
       # Optional: keep cargo test running even if svelte fails -> no `needs` dependency

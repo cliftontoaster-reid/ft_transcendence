@@ -18,15 +18,15 @@
 
     const profile: Profile = {
         id: 'user_001',
-        username: 'utilisateur',
-        display_name: 'Utilisateur',
-        bio: 'Profil utilisateur.',
+        username: 'user',
+        display_name: 'User',
+        bio: 'User profile.',
         avatar_url: '',
         age: 'AGE_BRACKET_PEGI_16'
     };
 
     const labels: Record<AgeBracket, string> = {
-        AGE_BRACKET_UNSPECIFIED: 'Non précisé',
+        AGE_BRACKET_UNSPECIFIED: 'Unspecified',
         AGE_BRACKET_PEGI_3: 'PEGI 3',
         AGE_BRACKET_PEGI_7: 'PEGI 7',
         AGE_BRACKET_PEGI_12: 'PEGI 12',
@@ -36,7 +36,7 @@
 </script>
 
 <svelte:head>
-    <title>{profile.display_name} | Profil</title>
+    <title>{profile.display_name} | Profile</title>
 </svelte:head>
 
 <main class="page-shell">
@@ -44,17 +44,23 @@
         <div class="cover"></div>
 
         <div class="profile-header">
-            <img class="avatar" src={profile.avatar_url} alt={profile.display_name} />
+            {#if profile.avatar_url}
+                <img class="avatar" src={profile.avatar_url} alt={profile.display_name} />
+            {:else}
+                <div class="avatar avatar-fallback" aria-label="Avatar">
+                    {profile.display_name.slice(0, 1).toUpperCase()}
+                </div>
+            {/if}
 
             <div class="profile-meta">
                 <div class="identity">
-                    <span class="eyebrow">Compte</span>
+                    <span class="eyebrow">Account</span>
                     <h1>{profile.display_name}</h1>
                     <p class="username">@{profile.username}</p>
                 </div>
 
                 <div class="actions">
-                    <button class="primary" type="button">Modifier</button>
+                    <button class="primary" type="button">Edit</button>
                 </div>
             </div>
         </div>
@@ -66,18 +72,18 @@
             </section>
 
             <section class="panel full-width">
-                <h2>Informations</h2>
+                <h2>Information</h2>
                 <ul class="info-list">
                     <li>
                         <span>ID</span>
                         <strong>{profile.id}</strong>
                     </li>
                     <li>
-                        <span>Nom d’utilisateur</span>
+                        <span>Username</span>
                         <strong>{profile.username}</strong>
                     </li>
                     <li>
-                        <span>Classe d’âge</span>
+                        <span>Age bracket</span>
                         <strong>{labels[profile.age ?? 'AGE_BRACKET_UNSPECIFIED']}</strong>
                     </li>
                 </ul>
@@ -87,34 +93,27 @@
 </main>
 
 <style>
-    :global(body) {
-        margin: 0;
-        background: #050505;
-        color: #ff8a1d;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
     * {
         box-sizing: border-box;
     }
 
     .page-shell {
-        min-height: 100vh;
+        min-height: calc(100vh - 2rem);
         display: flex;
-        align-items: stretch;
+        align-items: flex-start;
         justify-content: center;
-        padding: 0;
-        background: #050505;
+        padding: 1rem 0 2rem;
     }
 
     .profile-card {
         width: 100%;
-        min-height: 100vh;
+        max-width: 1080px;
+        min-height: 640px;
         background: rgba(18, 18, 18, 0.96);
         border: 1px solid rgba(255, 138, 29, 0.2);
-        border-radius: 0;
+        border-radius: 18px;
         overflow: hidden;
-        box-shadow: none;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
     }
 
     .cover {
@@ -137,6 +136,16 @@
         object-fit: cover;
         border: 3px solid #050505;
         background: #111;
+    }
+
+    .avatar-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffe3c8;
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #8b3f0f 0%, #ff8a1d 100%);
     }
 
     .profile-meta {
@@ -255,6 +264,15 @@
     }
 
     @media (max-width: 760px) {
+        .page-shell {
+            padding: 0 0 1rem;
+        }
+
+        .profile-card {
+            border-radius: 12px;
+            min-height: 0;
+        }
+
         .cover {
             height: 120px;
         }

@@ -1,0 +1,20 @@
+DROP TABLE IF EXISTS media_external_ids;
+ALTER TABLE media DROP CONSTRAINT IF EXISTS media_source_hash_key;
+ALTER TABLE media
+  DROP COLUMN IF EXISTS kind,
+  DROP COLUMN IF EXISTS source_hash,
+  DROP COLUMN IF EXISTS duration_ms,
+  DROP COLUMN IF EXISTS release_year,
+  DROP COLUMN IF EXISTS season_number,
+  DROP COLUMN IF EXISTS episode_number,
+  DROP COLUMN IF EXISTS original_path;
+ALTER TABLE media_track
+  DROP COLUMN IF EXISTS track_index,
+  DROP COLUMN IF EXISTS codec,
+  DROP COLUMN IF EXISTS is_default,
+  DROP COLUMN IF EXISTS is_forced,
+  DROP COLUMN IF EXISTS channels,
+  DROP COLUMN IF EXISTS width,
+  DROP COLUMN IF EXISTS height,
+  DROP COLUMN IF EXISTS title;
+DROP TYPE IF EXISTS media_kind;

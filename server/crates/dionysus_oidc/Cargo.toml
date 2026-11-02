@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 base64 = "0.22"
-rocket = "0.5.1"
+rocket = { version = "0.5.1", features = ["json"] }
 redis = { version = "0.32", features = ["tokio-comp"] }
 serde_json = "1"
 sha2 = "0.10"

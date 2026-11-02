@@ -1,8 +1,48 @@
 
+Enum media_kind {
+  movie
+  episode
+}
+
 Table media {
   id uuid [pk, default: `gen_random_uuid()`]
 
   manifest_path varchar(255) [not null]
+
+  kind media_kind [not null, default: 'movie']
+  // blake3 hash of the imported source file; dedups re-scans. NULL for legacy rows.
+  source_hash varchar(64) [unique]
+  duration_ms bigint
+  release_year smallint
+  season_number int
+  episode_number int
+  // Where the file came from, kept as provenance even though the original is deleted post-split.
+  original_path varchar(1024)
+}
+
+Table media_external_ids {
+  id uuid [pk, default: `gen_random_uuid()`]
+  media_id uuid [not null, ref: > media.id]
+  // e.g. "imdb", "tmdb" — mirrors the ExternalPersonID proto convention.
+  provider varchar(64) [not null]
+  value varchar(256) [not null]
+
+  Indexes {
+    (provider, value) [unique]
+    media_id [name: 'media_external_ids_media_id_idx']
+  }
+}
+
+// Metadata sources that answered during enrichment (native providers and
+// WASM plugins): what each descriptor reported, upserted by the import
+// phase. Per-media linkage stays in media_external_ids.provider.
+Table metadata_source {
+  id varchar(64) [pk]
+  name varchar(255) [not null]
+  // Provider implementation version (the source's own descriptor field).
+  version varchar(64) [not null]
+  // MODEL_VERSION of the metadata model the source was built against.
+  model_version varchar(64) [not null]
 }
 
 Table media_translations {
@@ -56,6 +96,15 @@ Table media_track {
   locale varchar(35) [not null]
 
   storage_path varchar(255) [not null]
+  // Stream index of the track in the original (now deleted) container.
+  track_index int [not null, default: 0]
+  codec varchar(32)
+  is_default boolean [not null, default: false]
+  is_forced boolean [not null, default: false]
+  channels smallint
+  width int
+  height int
+  title varchar(256)
 }
 
 Table rooms {

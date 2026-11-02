@@ -31,7 +31,6 @@
 				"svelte.svelte-vscode",
 				"esbenp.prettier-vscode",
 				"dbaeumer.vscode-eslint",
-				"bradlc.vscode-tailwindcss",
 				"tombi-toml.tombi",
 				"rust-lang.rust-analyzer",
 				"swellaby.vscode-rust-test-adapter",

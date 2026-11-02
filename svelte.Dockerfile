@@ -20,18 +20,20 @@ FROM bufbuild/buf:latest AS buf-build
 WORKDIR /workspace
 
 COPY ./proto .
-RUN buf generate --template '{"version":"v2","plugins":[{"local":"buf.build/bufbuild/es:v2.15.0","out":"gen"}]}'
+COPY ./third_party/googleapis/google/type/date.proto ./google/type/date.proto
+COPY ./third_party/googleapis/google/type/datetime.proto ./google/type/datetime.proto
+RUN buf generate --template '{"version":"v2","plugins":[{"remote":"buf.build/bufbuild/es:v2.15.0","out":"gen"}]}'
 
 
 FROM oven/bun:alpine AS build
 
 WORKDIR /workspace
 
-COPY package.json bun.lock ./
+COPY ./svelte/package.json ./svelte/bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY ./svelte .
-COPY --from=buf-build /workspace/gen /svelte/src/lib/proto
+COPY --from=buf-build /workspace/gen ./src/lib/proto
 
 RUN bun run build
 
@@ -43,7 +45,7 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-COPY package.json bun.lock ./
+COPY ./svelte/package.json ./svelte/bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 COPY --from=build /workspace/build ./build
