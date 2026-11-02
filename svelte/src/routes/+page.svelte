@@ -22,7 +22,6 @@
   import Color from '$lib/components/Color.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
   import Chat from '$lib/components/Chat.svelte';
-  import ContactsSidebar from '$lib/components/Contacts_sidebar.svelte';
   import Overview from '$lib/components/Overview.svelte';
   import { colors } from '$lib/colors';
   import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
@@ -55,6 +54,7 @@
   const minCategoryItemCount = Math.min(...carouselCategories.map(({ items }) => items.length));
 
   const searchQuery = getContext<SearchQueryState>(SEARCH_QUERY_CONTEXT);
+  let directMessageContact = $state<string | null>(null);
   let innerWidth = $state(browser ? window.innerWidth : 1200);
 
   let responsiveParticlesToShow = $derived.by(() => {
@@ -90,12 +90,14 @@
   </div>
 
   <aside class="chat-sidebar">
-    <Chat />
-  </aside>
+      <Chat
+        {directMessageContact}
+        onBackToGlobalChat={() => (directMessageContact = null)}
+        onDirectMessage={(contact) => (directMessageContact = contact)}
+      />
+    </aside>
 
-  <ContactsSidebar />
-
-  <section class="browse-section" aria-label="Browse colors">
+    <section class="browse-section" aria-label="Browse colors">
     {#if isSearching}
       <div
         class="grid-container"
@@ -124,15 +126,17 @@
 <style>
   .home-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 280px) 120px;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
     grid-template-rows: clamp(360px, 36vw, 560px) auto;
-    gap: 1rem;
+    column-gap: 0.5rem;
+    row-gap: 1rem;
     align-items: stretch;
   }
 
   .home-content {
     height: 100%;
     min-width: 0;
+    margin-left: calc(-1 * max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
   }
 
   .browse-section {
@@ -158,7 +162,8 @@
   }
 
   .chat-sidebar {
-    width: 100%;
+    width: calc(100% + max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
+    margin-right: calc(-1 * max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
@@ -172,11 +177,6 @@
   .chat-sidebar :global(.chat-messages) {
     flex: 1;
     height: 0;
-    min-height: 0;
-  }
-
-  .contacts-sidebar {
-    height: 100%;
     min-height: 0;
   }
 
@@ -213,8 +213,5 @@
       height: 300px;
     }
 
-    .contacts-sidebar {
-      height: auto;
-    }
   }
 </style>

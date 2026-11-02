@@ -70,10 +70,22 @@
     max-width: none;
     margin: 0 auto;
     aspect-ratio: 16 / 9;
-    border-radius: 16px;
+    border-radius: 6px;
     overflow: hidden;
     color: #ffffff;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 8px 1px rgb(255 122 26 / 18%),
+      0 0 16px 3px rgb(255 122 26 / 8%);
+    transition: box-shadow 0.25s ease;
+  }
+
+  .overview-container:hover,
+  .overview-container:focus-within {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 8px 2px rgb(255 122 26 / 65%),
+      0 0 24px 6px rgb(255 122 26 / 30%);
   }
 
   .overview-bg {

@@ -13,11 +13,12 @@ use crate::codec::{
 };
 // Prost names oneof enums after the `oneof` label; alias them back to the
 // `*OneOf` convention so they don't shadow the real codec enums.
-use crate::proto::dionysus::encoder::v1::audio_job::AudioCodec as AudioCodecOneOf;
-use crate::proto::dionysus::encoder::v1::video_job::VideoCodec as VideoCodecOneOf;
-use crate::proto::dionysus::encoder::v1::{
+use dionysus_proto::dionysus::encoder::v1::audio_job::AudioCodec as AudioCodecOneOf;
+use dionysus_proto::dionysus::encoder::v1::video_job::VideoCodec as VideoCodecOneOf;
+use dionysus_proto::dionysus::encoder::v1::{
   AudioCodec, AudioJob, JobResult, SegmentAudioRequest, SegmentAudioResponse, SegmentVideoRequest,
-  SegmentVideoResponse, VideoCodec, VideoJob, job_service_server::JobService,
+  SegmentVideoResponse, SplitTracksRequest, SplitTracksResponse, VideoCodec, VideoJob,
+  job_service_server::JobService,
 };
 
 pub struct JobServer {
@@ -358,8 +359,8 @@ impl JobServer {
   }
 }
 
-fn now_datetime() -> crate::proto::google::r#type::DateTime {
-  use crate::proto::google::r#type::{DateTime, date_time::TimeOffset};
+fn now_datetime() -> dionysus_proto::google::r#type::DateTime {
+  use dionysus_proto::google::r#type::{DateTime, date_time::TimeOffset};
   let now = Utc::now();
   DateTime {
     year: now.date_naive().year(),
@@ -413,12 +414,25 @@ impl JobService for JobServer {
       result: Some(result),
     }))
   }
+
+  async fn split_tracks(
+    &self,
+    request: Request<SplitTracksRequest>,
+  ) -> Result<Response<SplitTracksResponse>, Status> {
+    let job = request.into_inner();
+
+    let permit = self.acquire_permit().await?;
+    let response = self.split(job).await?;
+    drop(permit);
+
+    Ok(Response::new(response))
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::proto::dionysus::encoder::v1::{Filter, Resolution};
+  use dionysus_proto::dionysus::encoder::v1::{Filter, Resolution};
 
   #[test]
   fn timestamp_to_chrono_clamps() {

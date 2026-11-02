@@ -10,104 +10,104 @@
       {
         "name": "media",
         "schemaName": "public",
-        "x": 1160,
-        "y": 232
+        "x": 456,
+        "y": 832
       },
       {
         "name": "media_translations",
         "schemaName": "public",
-        "x": 48,
-        "y": 536
+        "x": 960,
+        "y": 256
       },
       {
         "name": "media_images",
         "schemaName": "public",
-        "x": 1504,
-        "y": 416
+        "x": 960,
+        "y": 16
       },
       {
         "name": "rooms",
         "schemaName": "public",
-        "x": 328,
-        "y": 456
+        "x": 16,
+        "y": 1040
       },
       {
         "name": "room_participents",
         "schemaName": "public",
-        "x": 1136,
-        "y": 1000
+        "x": 456,
+        "y": 1056
       },
       {
         "name": "users",
         "schemaName": "public",
-        "x": 480,
-        "y": 1128
+        "x": 16,
+        "y": 1432
       },
       {
         "name": "media_track",
         "schemaName": "public",
-        "x": 1464,
-        "y": 816
+        "x": 960,
+        "y": 600
       },
       {
         "name": "oidc_identities",
         "schemaName": "public",
-        "x": 152,
-        "y": 1408
+        "x": 456,
+        "y": 1584
       },
       {
         "name": "sessions",
         "schemaName": "public",
-        "x": 1088,
-        "y": 216
+        "x": 960,
+        "y": 1616
       },
       {
         "name": "roles",
         "schemaName": "public",
-        "x": 944,
-        "y": 744
+        "x": 16,
+        "y": 1880
       },
       {
         "name": "permissions",
         "schemaName": "public",
-        "x": 1192,
-        "y": 672
+        "x": 16,
+        "y": 2096
       },
       {
         "name": "user_roles",
         "schemaName": "public",
-        "x": 848,
-        "y": 48
+        "x": 456,
+        "y": 1896
       },
       {
         "name": "role_permissions",
         "schemaName": "public",
-        "x": 312,
-        "y": 832
+        "x": 456,
+        "y": 2112
       },
       {
         "name": "viewer_profiles",
         "schemaName": "public",
-        "x": 216,
-        "y": 904
+        "x": 456,
+        "y": 1272
       },
       {
         "name": "watch_progress",
         "schemaName": "public",
-        "x": 896,
-        "y": 1200
+        "x": 960,
+        "y": 1336
       },
       {
         "name": "watch_history",
         "schemaName": "public",
-        "x": 632,
-        "y": 248
+        "x": 960,
+        "y": 1032
       },
       {
         "name": "my_list",
         "schemaName": "public",
-        "x": 360,
-        "y": 136
+        "x": 960,
+        "y": 848
       }
     ],
     "tableGroupCollapseStates": [],

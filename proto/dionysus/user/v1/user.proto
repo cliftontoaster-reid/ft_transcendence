@@ -5,7 +5,7 @@ package dionysus.user.v1;
 import "dionysus/common/v1/asset.proto";
 
 message UserID {
-  uint64 value = 1;
+  dionysus.common.v1.UUID value = 1;
 }
 
 enum AgeBracket {

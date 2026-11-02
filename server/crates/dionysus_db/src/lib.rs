@@ -17,6 +17,16 @@ pub fn establish_connection() -> PgConnection {
     .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
+/// Non-panicking [`establish_connection`]: `None` when `DATABASE_URL` is
+/// unset or the connection fails, so services can degrade to filesystem
+/// fallbacks instead of refusing to start.
+pub fn try_establish_connection() -> Option<PgConnection> {
+  dotenv().ok();
+
+  let database_url = env::var("DATABASE_URL").ok()?;
+  PgConnection::establish(&database_url).ok()
+}
+
 pub fn run_migrations(
   conn: &mut PgConnection,
 ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {

@@ -1,8 +1,10 @@
 use dionysus_oidc::{
-  login::{LoginUrlError, LoginUrlService},
+  login::{CallbackRequest, LoginUrlError, LoginUrlService},
   model::config::OidcConfig,
 };
-use rocket::{Build, Rocket, State, form::FromForm, http::Status, response::Redirect, routes};
+use rocket::{
+  Build, Rocket, State, form::FromForm, http::Status, response::Redirect, routes, serde::json::Json,
+};
 use std::{env, fs, path::PathBuf};
 use url::Url;
 
@@ -15,6 +17,14 @@ struct ConfigFile {
 #[derive(Debug, FromForm)]
 pub struct LoginQuery {
   pub redirect_uri: Option<String>,
+}
+
+#[derive(Debug, FromForm)]
+pub struct CallbackQuery {
+  pub code: Option<String>,
+  pub state: Option<String>,
+  pub error: Option<String>,
+  pub error_description: Option<String>,
 }
 
 #[rocket::get("/auth/login/<provider>?<query..>")]
@@ -38,6 +48,25 @@ pub async fn generate_openid_url(
   Ok(Redirect::to(request.authorization_url.to_string()))
 }
 
+#[rocket::get("/auth/callback?<query..>")]
+pub async fn handle_openid_callback(
+  query: CallbackQuery,
+  service: &State<LoginUrlService>,
+) -> Result<Json<dionysus_oidc::login::AuthenticatedUser>, Status> {
+  let callback = CallbackRequest {
+    code: query.code,
+    state: query.state,
+    error: query.error,
+    error_description: query.error_description,
+  };
+
+  service
+    .handle_callback(callback)
+    .await
+    .map(Json)
+    .map_err(callback_error_status)
+}
+
 fn login_error_status(error: LoginUrlError) -> Status {
   match error {
     LoginUrlError::UnknownProvider(_)
@@ -49,7 +78,38 @@ fn login_error_status(error: LoginUrlError) -> Status {
     | LoginUrlError::InvalidIssuer(_)
     | LoginUrlError::Discovery(_)
     | LoginUrlError::Redis(_)
-    | LoginUrlError::Serialization(_) => Status::InternalServerError,
+    | LoginUrlError::Serialization(_)
+    | LoginUrlError::MissingCallbackState
+    | LoginUrlError::MissingAuthorizationCode
+    | LoginUrlError::Provider(_)
+    | LoginUrlError::MissingLoginTransaction
+    | LoginUrlError::StateMismatch
+    | LoginUrlError::TokenExchange(_)
+    | LoginUrlError::MissingIdToken
+    | LoginUrlError::IdTokenVerification(_) => Status::InternalServerError,
+  }
+}
+
+fn callback_error_status(error: LoginUrlError) -> Status {
+  match error {
+    LoginUrlError::MissingCallbackState
+    | LoginUrlError::MissingAuthorizationCode
+    | LoginUrlError::Provider(_)
+    | LoginUrlError::MissingLoginTransaction
+    | LoginUrlError::StateMismatch
+    | LoginUrlError::MissingIdToken
+    | LoginUrlError::IdTokenVerification(_) => Status::BadRequest,
+    LoginUrlError::UnknownProvider(_)
+    | LoginUrlError::InvalidIssuer(_)
+    | LoginUrlError::Secret(_)
+    | LoginUrlError::Discovery(_)
+    | LoginUrlError::Redis(_)
+    | LoginUrlError::Serialization(_)
+    | LoginUrlError::TokenExchange(_) => Status::InternalServerError,
+    LoginUrlError::MissingRedirectUri(_)
+    | LoginUrlError::AmbiguousRedirectUri(_)
+    | LoginUrlError::MissingOpenidScope(_)
+    | LoginUrlError::InvalidRedirectUri { .. } => Status::BadRequest,
   }
 }
 
@@ -70,5 +130,5 @@ async fn rocket() -> Rocket<Build> {
 
   rocket::build()
     .manage(service)
-    .mount("/", routes![generate_openid_url])
+    .mount("/", routes![generate_openid_url, handle_openid_callback])
 }

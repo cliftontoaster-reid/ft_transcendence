@@ -1,6 +1,6 @@
 use rocket::request::FromParam;
 
-use crate::proto::dionysus::encoder::v1::{AudioCodec, Resolution, VideoCodec};
+use dionysus_proto::dionysus::encoder::v1::{AudioCodec, Resolution, VideoCodec};
 
 /// `low` | `medium` | `high`, mapped to bitrates from [`crate::config::AppConfig`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

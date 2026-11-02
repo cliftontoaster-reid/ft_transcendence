@@ -1,9 +1,9 @@
 mod codec;
 mod jobs;
-mod proto;
+mod split;
 
+use dionysus_proto::dionysus::encoder::v1::job_service_server::JobServiceServer;
 use jobs::JobServer;
-use proto::dionysus::encoder::v1::job_service_server::JobServiceServer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

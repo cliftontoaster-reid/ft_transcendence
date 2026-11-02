@@ -1,0 +1,20 @@
+[package]
+name = "dionysus_metadata"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = "0.1.92"
+diesel = { version = "2.3.14", features = ["postgres"] }
+dionysus_db = { version = "0.1.0", path = "../dionysus_db" }
+dionysus_metadata_model = { version = "0.1.0", path = "../dionysus_metadata_model" }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+thiserror = "2"
+tokio = { version = "1.53.3", features = ["fs", "rt", "sync"] }
+tracing = "0.1.44"
+url = "2"
+uuid = "1"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tokio = { version = "1.53.3", features = ["macros", "rt-multi-thread", "net", "io-util"] }

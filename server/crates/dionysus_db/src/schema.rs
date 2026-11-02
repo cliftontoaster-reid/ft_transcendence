@@ -6,6 +6,10 @@ pub mod sql_types {
   pub struct MediaImageType;
 
   #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "media_kind"))]
+  pub struct MediaKind;
+
+  #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "media_track_type"))]
   pub struct MediaTrackType;
 
@@ -15,10 +19,33 @@ pub mod sql_types {
 }
 
 diesel::table! {
+  use diesel::sql_types::*;
+  use super::sql_types::MediaKind;
+
   media (id) {
     id -> Uuid,
     #[max_length = 255]
     manifest_path -> Varchar,
+    kind -> MediaKind,
+    #[max_length = 64]
+    source_hash -> Nullable<Varchar>,
+    duration_ms -> Nullable<Int8>,
+    release_year -> Nullable<Int2>,
+    season_number -> Nullable<Int4>,
+    episode_number -> Nullable<Int4>,
+    #[max_length = 1024]
+    original_path -> Nullable<Varchar>,
+  }
+}
+
+diesel::table! {
+  media_external_ids (id) {
+    id -> Uuid,
+    media_id -> Uuid,
+    #[max_length = 64]
+    provider -> Varchar,
+    #[max_length = 256]
+    value -> Varchar,
   }
 }
 
@@ -50,6 +77,16 @@ diesel::table! {
     locale -> Varchar,
     #[max_length = 255]
     storage_path -> Varchar,
+    track_index -> Int4,
+    #[max_length = 32]
+    codec -> Nullable<Varchar>,
+    is_default -> Bool,
+    is_forced -> Bool,
+    channels -> Nullable<Int2>,
+    width -> Nullable<Int4>,
+    height -> Nullable<Int4>,
+    #[max_length = 256]
+    title -> Nullable<Varchar>,
   }
 }
 
@@ -71,6 +108,19 @@ diesel::table! {
     summary -> Varchar,
     fts_content -> Nullable<Tsvector>,
     embedding -> Nullable<Vector>,
+  }
+}
+
+diesel::table! {
+  metadata_source (id) {
+    #[max_length = 64]
+    id -> Varchar,
+    #[max_length = 255]
+    name -> Varchar,
+    #[max_length = 64]
+    version -> Varchar,
+    #[max_length = 64]
+    model_version -> Varchar,
   }
 }
 
@@ -203,6 +253,7 @@ diesel::table! {
   }
 }
 
+diesel::joinable!(media_external_ids -> media (media_id));
 diesel::joinable!(my_list -> media (media_id));
 diesel::joinable!(my_list -> viewer_profiles (profile_id));
 diesel::joinable!(media_images -> media (media_id));
@@ -223,9 +274,11 @@ diesel::joinable!(watch_progress -> viewer_profiles (profile_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
   media,
+  media_external_ids,
   media_images,
   media_track,
   media_translations,
+  metadata_source,
   my_list,
   oidc_identities,
   permissions,
