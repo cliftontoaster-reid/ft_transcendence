@@ -1,7 +1,7 @@
 use crate::config::AppConfig;
 use crate::params::Quality;
-use crate::proto::dionysus::encoder::v1::rate_control::Mode;
-use crate::proto::dionysus::encoder::v1::RateControl;
+use dionysus_proto::dionysus::encoder::v1::RateControl;
+use dionysus_proto::dionysus::encoder::v1::rate_control::Mode;
 
 /// `Quality` -> encoder `RateControl`, using per-tier bitrates from env/config.
 pub fn video_rate_control(quality: Quality, config: &AppConfig) -> RateControl {

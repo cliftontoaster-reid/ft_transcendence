@@ -167,6 +167,19 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         disabled -> Bool,
+        #[max_length = 64]
+        username -> Nullable<Varchar>,
+        #[max_length = 500]
+        bio -> Nullable<Varchar>,
+        age_bracket -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
+    user_friends (user_id, friend_id) {
+        user_id -> Uuid,
+        friend_id -> Uuid,
+        created_at -> Timestamptz,
     }
 }
 
@@ -237,6 +250,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   roles,
   sessions,
   user_roles,
+  user_friends,
   users,
   viewer_profiles,
   watch_history,

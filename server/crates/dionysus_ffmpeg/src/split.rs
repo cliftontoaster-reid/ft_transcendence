@@ -13,7 +13,7 @@ use rust_ffmpeg::{Codec, FFmpegBuilder, Input, LogLevel, Output, StreamMap};
 use tonic::Status;
 
 use crate::jobs::JobServer;
-use crate::proto::dionysus::encoder::v1::{
+use dionysus_proto::dionysus::encoder::v1::{
   MediaTrackType, SplitTrack, SplitTracksRequest, SplitTracksResponse,
 };
 
@@ -274,7 +274,7 @@ fn map_probe_error(err: ProbeError) -> Status {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::proto::dionysus::encoder::v1::SplitTracksRequest;
+  use dionysus_proto::dionysus::encoder::v1::SplitTracksRequest;
 
   fn request(source: &Path, output_dir: &Path) -> SplitTracksRequest {
     SplitTracksRequest {

@@ -9,5 +9,4 @@ pub mod config;
 pub mod metadata;
 pub mod parser;
 pub mod pipeline;
-pub mod proto;
 pub mod scanner;

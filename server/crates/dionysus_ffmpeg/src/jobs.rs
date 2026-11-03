@@ -13,9 +13,9 @@ use crate::codec::{
 };
 // Prost names oneof enums after the `oneof` label; alias them back to the
 // `*OneOf` convention so they don't shadow the real codec enums.
-use crate::proto::dionysus::encoder::v1::audio_job::AudioCodec as AudioCodecOneOf;
-use crate::proto::dionysus::encoder::v1::video_job::VideoCodec as VideoCodecOneOf;
-use crate::proto::dionysus::encoder::v1::{
+use dionysus_proto::dionysus::encoder::v1::audio_job::AudioCodec as AudioCodecOneOf;
+use dionysus_proto::dionysus::encoder::v1::video_job::VideoCodec as VideoCodecOneOf;
+use dionysus_proto::dionysus::encoder::v1::{
   AudioCodec, AudioJob, JobResult, SegmentAudioRequest, SegmentAudioResponse, SegmentVideoRequest,
   SegmentVideoResponse, SplitTracksRequest, SplitTracksResponse, VideoCodec, VideoJob,
   job_service_server::JobService,
@@ -359,8 +359,8 @@ impl JobServer {
   }
 }
 
-fn now_datetime() -> crate::proto::google::r#type::DateTime {
-  use crate::proto::google::r#type::{DateTime, date_time::TimeOffset};
+fn now_datetime() -> dionysus_proto::google::r#type::DateTime {
+  use dionysus_proto::google::r#type::{DateTime, date_time::TimeOffset};
   let now = Utc::now();
   DateTime {
     year: now.date_naive().year(),
@@ -432,7 +432,7 @@ impl JobService for JobServer {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::proto::dionysus::encoder::v1::{Filter, Resolution};
+  use dionysus_proto::dionysus::encoder::v1::{Filter, Resolution};
 
   #[test]
   fn timestamp_to_chrono_clamps() {

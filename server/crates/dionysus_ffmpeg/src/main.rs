@@ -1,13 +1,12 @@
 mod codec;
 mod jobs;
-mod proto;
 mod split;
 
+use dionysus_proto::dionysus::encoder::v1::job_service_server::JobServiceServer;
 use jobs::JobServer;
-use proto::dionysus::encoder::v1::job_service_server::JobServiceServer;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   tracing_subscriber::fmt()
     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
     .init();

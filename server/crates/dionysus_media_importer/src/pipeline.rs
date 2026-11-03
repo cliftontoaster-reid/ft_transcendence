@@ -19,9 +19,9 @@ use dionysus_ffprobe::CodecType;
 
 use crate::config::ImportConfig;
 use crate::metadata::MetadataStep;
-use crate::proto::dionysus::encoder::v1::{
-  job_service_client::JobServiceClient, MediaTrackType as ProtoTrackType, SplitTrack,
-  SplitTracksRequest,
+use dionysus_proto::dionysus::encoder::v1::{
+  MediaTrackType as ProtoTrackType, SplitTrack, SplitTracksRequest,
+  job_service_client::JobServiceClient,
 };
 
 /// Split is lossless, so a video/audio output's duration must agree with the

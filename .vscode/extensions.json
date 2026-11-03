@@ -1,12 +1,11 @@
 {
-	"recommendations": [
-		"svelte.svelte-vscode",
-		"esbenp.prettier-vscode",
-		"dbaeumer.vscode-eslint",
-		"bradlc.vscode-tailwindcss",
-		"tombi-toml.tombi",
-		"swellaby.vscode-rust-test-adapter",
-		"rust-lang.rust-analyzer",
-		"psioniq.psi-header"
-	]
+  "recommendations": [
+    "svelte.svelte-vscode",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "tombi-toml.tombi",
+    "swellaby.vscode-rust-test-adapter",
+    "rust-lang.rust-analyzer",
+    "psioniq.psi-header"
+  ]
 }

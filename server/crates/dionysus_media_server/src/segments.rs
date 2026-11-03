@@ -9,12 +9,12 @@ use crate::cache;
 use crate::config::AppConfig;
 use crate::manifest;
 use crate::params::{AudioCodecParam, ChannelsParam, Quality, ResolutionParam, SegmentFile, VideoCodecParam};
-use crate::proto::dionysus::encoder::v1::{
-  audio_job, job_service_client::JobServiceClient, video_job, AudioJob, SegmentAudioRequest,
-  SegmentVideoRequest, VideoJob,
-};
 use crate::source;
 use crate::window;
+use dionysus_proto::dionysus::encoder::v1::{
+  AudioJob, SegmentAudioRequest, SegmentVideoRequest, VideoJob, audio_job,
+  job_service_client::JobServiceClient, video_job,
+};
 
 fn mp4() -> ContentType {
   ContentType::new("video", "mp4")
