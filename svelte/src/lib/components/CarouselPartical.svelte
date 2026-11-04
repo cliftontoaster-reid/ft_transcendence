@@ -4,11 +4,11 @@
   let {
     slug,
     color,
-    text
+    title
   }: {
     slug: string;
     color: string;
-    text: string;
+    title: string;
   } = $props();
 
   // All cards navigate to their detail page normally
@@ -17,40 +17,31 @@
   let startTime = 0;
   let startX = 0;
   let startY = 0;
-  let isDragging = false;
 
   function handlePointerDown(event: PointerEvent) {
     startTime = Date.now();
     startX = event.clientX;
     startY = event.clientY;
-    isDragging = false;
-  }
-
-  function handlePointerMove(event: PointerEvent) {
-    const moveX = Math.abs(event.clientX - startX);
-    const moveY = Math.abs(event.clientY - startY);
-    
-    if (moveX > 15 || moveY > 15) {
-      isDragging = true;
-    }
   }
 
   function handleClick(event: MouseEvent) {
+    const moveX = Math.abs(event.clientX - startX);
+    const moveY = Math.abs(event.clientY - startY);
     const elapsedTime = Date.now() - startTime;
 
-    if (isDragging && elapsedTime > 250) {
+    // Merged single check: if it moved far AND took longer than a quick tap
+    if ((moveX > 1 || moveY > 1) && elapsedTime > 100) {
       event.preventDefault();
       event.stopPropagation();
     }
-    
-    isDragging = false;
   }
+
 </script>
 
 <a
   class="color-card"
   href={colorUrl}
-  aria-label={`View summary for ${text}`}
+  aria-label={`View summary for ${title}`}
   draggable="false"
   onpointerdown={handlePointerDown}
   onpointermove={handlePointerMove}
@@ -60,7 +51,7 @@
     class="color-content"
     style={`background-color: ${color}`}
   >
-    <span>{text}</span>
+    <span>{title}</span>
   </div>
 </a>
 
