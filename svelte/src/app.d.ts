@@ -21,7 +21,10 @@
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			/** UUID of the authenticated user, undefined when logged out. */
+			userId?: string;
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
