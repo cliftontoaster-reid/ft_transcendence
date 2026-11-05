@@ -179,19 +179,24 @@
 	/* Style pour l'utilisateur courant */
 	.message.user {
 		/*background: #8f015f;*/
-		color: #d46000;
+		color: #fffefd;
 		align-self: flex-end;
+		font-family: monospace;
+		font-weight: 100;
 	}
 
 	.sender {
+		color: #ff8000;
 		display: block;
-		font-size: 0.75rem;
-		opacity: 0.7;
+		font-size: 0.80rem;
 		margin-bottom: 0.25rem;
+		font-weight: bold;
+		text-align: right;
 	}
 
 	.message p {
 		margin: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.chat-input-form {
