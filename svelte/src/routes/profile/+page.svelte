@@ -1,42 +1,35 @@
 <script lang="ts">
-    type AgeBracket =
-        | 'AGE_BRACKET_UNSPECIFIED'
-        | 'AGE_BRACKET_PEGI_3'
-        | 'AGE_BRACKET_PEGI_7'
-        | 'AGE_BRACKET_PEGI_12'
-        | 'AGE_BRACKET_PEGI_16'
-        | 'AGE_BRACKET_PEGI_18';
+    import { enhance } from '$app/forms';
+    import { AgeBracket } from '$lib/proto/dionysus/user/v1/user_pb';
+    import type { ActionData, PageData } from './$types';
 
-    type Profile = {
-        id: string;
-        username: string;
-        display_name: string;
-        bio: string;
-        avatar_url: string;
-        age?: AgeBracket;
-    };
+    let { data, form }: { data: PageData; form: ActionData } = $props();
 
-    const profile: Profile = {
-        id: 'user_001',
-        username: 'user',
-        display_name: 'User',
-        bio: 'User profile.',
-        avatar_url: '',
-        age: 'AGE_BRACKET_PEGI_16'
-    };
+    // Shape comes from `user.proto` (User) and the `users` table of db.dbml.
+    const profile = $derived(data.profile);
+    let editing = $state(false);
 
+    // Generated enums are numeric: AGE_BRACKET_PEGI_3 -> AgeBracket.PEGI_3
     const labels: Record<AgeBracket, string> = {
-        AGE_BRACKET_UNSPECIFIED: 'Unspecified',
-        AGE_BRACKET_PEGI_3: 'PEGI 3',
-        AGE_BRACKET_PEGI_7: 'PEGI 7',
-        AGE_BRACKET_PEGI_12: 'PEGI 12',
-        AGE_BRACKET_PEGI_16: 'PEGI 16',
-        AGE_BRACKET_PEGI_18: 'PEGI 18'
+        [AgeBracket.UNSPECIFIED]: 'Unspecified',
+        [AgeBracket.PEGI_3]: 'PEGI 3',
+        [AgeBracket.PEGI_7]: 'PEGI 7',
+        [AgeBracket.PEGI_12]: 'PEGI 12',
+        [AgeBracket.PEGI_16]: 'PEGI 16',
+        [AgeBracket.PEGI_18]: 'PEGI 18'
     };
+    const brackets = [
+        AgeBracket.UNSPECIFIED,
+        AgeBracket.PEGI_3,
+        AgeBracket.PEGI_7,
+        AgeBracket.PEGI_12,
+        AgeBracket.PEGI_16,
+        AgeBracket.PEGI_18
+    ];
 </script>
 
 <svelte:head>
-    <title>{profile.display_name} | Profile</title>
+    <title>{profile.displayName} | Profile</title>
 </svelte:head>
 
 <main class="page-shell">
@@ -44,26 +37,94 @@
         <div class="cover"></div>
 
         <div class="profile-header">
-            {#if profile.avatar_url}
-                <img class="avatar" src={profile.avatar_url} alt={profile.display_name} />
+            {#if profile.avatarUrl}
+                <img class="avatar" src={profile.avatarUrl} alt={profile.displayName} />
             {:else}
                 <div class="avatar avatar-fallback" aria-label="Avatar">
-                    {profile.display_name.slice(0, 1).toUpperCase()}
+                    {profile.displayName.slice(0, 1).toUpperCase()}
                 </div>
             {/if}
 
             <div class="profile-meta">
                 <div class="identity">
                     <span class="eyebrow">Account</span>
-                    <h1>{profile.display_name}</h1>
-                    <p class="username">@{profile.username}</p>
+                    <h1>{profile.displayName}</h1>
+                    {#if profile.username}
+                        <p class="username">@{profile.username}</p>
+                    {/if}
                 </div>
 
                 <div class="actions">
-                    <button class="primary" type="button">Edit</button>
+                    <button class="primary" type="button" onclick={() => (editing = !editing)}>
+                        {editing ? 'Cancel' : 'Edit'}
+                    </button>
                 </div>
             </div>
         </div>
+
+        {#if editing}
+            <form
+                class="edit-form"
+                method="POST"
+                action="?/update"
+                use:enhance={() =>
+                    async ({ result, update }) => {
+                        await update({ reset: false });
+                        if (result.type === 'success') editing = false;
+                    }}
+            >
+                {#if form?.message}
+                    <p class="error" role="alert">{form.message}</p>
+                {/if}
+
+                <label>
+                    Display name
+                    <input
+                        name="display_name"
+                        maxlength="256"
+                        required
+                        value={form?.values?.display_name ?? profile.displayName}
+                    />
+                </label>
+                <label>
+                    Username
+                    <input
+                        name="username"
+                        maxlength="64"
+                        value={form?.values?.username ?? profile.username}
+                    />
+                </label>
+                <label>
+                    Avatar URL
+                    <input
+                        name="avatar_url"
+                        maxlength="2048"
+                        value={form?.values?.avatar_url ?? profile.avatarUrl}
+                    />
+                </label>
+                <label>
+                    Bio
+                    <textarea name="bio" maxlength="500">{form?.values?.bio ?? profile.bio}</textarea>
+                </label>
+                <label>
+                    Age bracket
+                    <select name="age">
+                        {#each brackets as bracket (bracket)}
+                            <option
+                                value={bracket}
+                                selected={bracket === (form?.values?.age ?? profile.age)}
+                            >
+                                {labels[bracket]}
+                            </option>
+                        {/each}
+                    </select>
+                </label>
+
+                <div class="form-actions">
+                    <button class="primary" type="submit">Save</button>
+                </div>
+            </form>
+        {/if}
 
         <div class="content-grid">
             <section class="panel full-width">
@@ -80,11 +141,11 @@
                     </li>
                     <li>
                         <span>Username</span>
-                        <strong>{profile.username}</strong>
+                        <strong>{profile.username || '—'}</strong>
                     </li>
                     <li>
                         <span>Age bracket</span>
-                        <strong>{labels[profile.age ?? 'AGE_BRACKET_UNSPECIFIED']}</strong>
+                        <strong>{labels[profile.age]}</strong>
                     </li>
                 </ul>
             </section>
@@ -324,5 +385,44 @@
             flex-direction: column;
             align-items: flex-start;
         }
+    }
+
+    .edit-form {
+        display: grid;
+        gap: 14px;
+        padding: 0 20px 20px;
+    }
+
+    .edit-form label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.85rem;
+        opacity: 0.85;
+    }
+
+    .edit-form input,
+    .edit-form textarea,
+    .edit-form select {
+        font: inherit;
+        color: inherit;
+        background: #111;
+        border: 1px solid rgba(255, 138, 29, 0.25);
+        border-radius: 10px;
+        padding: 10px 12px;
+    }
+
+    .edit-form textarea {
+        min-height: 96px;
+        resize: vertical;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .error {
+        color: #ff6b6b;
+        margin: 0;
     }
 </style>
