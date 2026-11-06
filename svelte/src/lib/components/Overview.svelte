@@ -135,7 +135,6 @@
     letter-spacing: -0.02em;
     text-transform: uppercase;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    font-family: monospace;
   }
 
   .description {

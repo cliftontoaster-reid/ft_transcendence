@@ -1,59 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import ContactsSidebar from '$lib/components/Contacts_sidebar.svelte';
-	import {
-		connectToChat,
-		type ChatClient,
-		type ChatMessage,
-		type ConnectionStatus
-	} from '$lib/chat/chat-client';
 
-	const DEFAULT_CHANNEL_ID = '00000000-0000-0000-0000-000000000001';
+	type ChatMessage = { sender: string; text: string };
 
 	let {
-		channelId = DEFAULT_CHANNEL_ID,
 		directMessageContact = null,
 		onBackToGlobalChat,
 		onDirectMessage
 	}: {
-		channelId?: string;
 		directMessageContact?: string | null;
 		onBackToGlobalChat?: () => void;
 		onDirectMessage?: (contact: string) => void;
 	} = $props();
 
-	let connectionStatus = $state<ConnectionStatus>('connecting');
-	let connectionError = $state('');
-	let chatClient: ChatClient | null = null;
-	let messageList: HTMLDivElement | undefined;
 	let messagesByConversation = $state<Record<string, ChatMessage[]>>({});
 	let inputMessage = $state('');
 	let conversationKey = $derived(directMessageContact ? `dm:${directMessageContact}` : 'global');
 	let messages = $derived(messagesByConversation[conversationKey] ?? []);
-
-	$effect(() => {
-		if (messages.length > 0 && messageList) {
-			messageList.scrollTo({ top: messageList.scrollHeight, behavior: 'smooth' });
-		}
-	});
-
-	onMount(() => {
-		chatClient = connectToChat({
-			channelId,
-			onStatus: (status) => (connectionStatus = status),
-			onError: (message) => (connectionError = message),
-			onMessage: (message) => {
-				messagesByConversation.global = [...(messagesByConversation.global ?? []), message];
-			},
-			onSnapshot: (messages) => (messagesByConversation.global = messages)
-		});
-
-		return () => {
-			chatClient?.close();
-			chatClient = null;
-		};
-	});
-
 	let chatContacts = $derived(
 		Object.entries(messagesByConversation)
 			.filter(
@@ -64,18 +27,10 @@
 
 	function sendMessage(e: Event) {
 		e.preventDefault();
-
 		const text = inputMessage.trim();
 		if (!text) return;
-		if (directMessageContact) {
-			connectionError = 'Les messages privés ne sont pas encore pris en charge par le serveur.';
-			return;
-		}
-		connectionError = '';
-		if (chatClient === null) return;
 
-		const messageWasSent = chatClient.send(text);
-		if (!messageWasSent) return;
+		messagesByConversation[conversationKey] = [...messages, { sender: 'Moi', text }];
 		inputMessage = '';
 	}
 </script>
@@ -83,11 +38,7 @@
 <div class="chat-container">
 	<section class="conversation" aria-label="Conversation">
 		<div class="chat-header">
-			<span
-				class="status-dot {connectionStatus}"
-				title={`Chat ${connectionStatus}`}
-				aria-label={`Chat ${connectionStatus}`}
-			></span>
+			<span class="status-dot"></span>
 			{#if directMessageContact}
 				<button
 					class="back-button"
@@ -100,11 +51,8 @@
 			{/if}
 			<h3>{directMessageContact ?? 'Chat général'}</h3>
 		</div>
-		{#if connectionError}
-			<p class="chat-error" role="alert">{connectionError}</p>
-		{/if}
 
-		<div class="chat-messages" aria-live="polite" bind:this={messageList}>
+		<div class="chat-messages" aria-live="polite">
 			{#if messages.length === 0}
 				<p class="empty-chat">
 					{directMessageContact
@@ -177,20 +125,8 @@
 	.status-dot {
 		width: 10px;
 		height: 10px;
-		border-radius: 50%;
-	}
-
-	.status-dot.connecting {
-		background-color: #f59e0b;
-	}
-
-	.status-dot.connected {
 		background-color: #22c55e;
-	}
-
-	.status-dot.disconnected,
-	.status-dot.error {
-		background-color: #ef4444;
+		border-radius: 50%;
 	}
 
 	.chat-header h3 {
@@ -224,15 +160,6 @@
 		text-align: center;
 		margin: auto 0;
 		align-self: center;
-	}
-
-	.chat-error {
-		margin: 0;
-		padding: 0.5rem 1rem;
-		border-bottom: 1px solid #7f1d1d;
-		background: #450a0a;
-		color: #fecaca;
-		font-size: 0.8rem;
 	}
 
 	.message {
