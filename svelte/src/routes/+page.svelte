@@ -78,25 +78,29 @@
 <svelte:window bind:innerWidth />
 
 <div class="home-layout">
-  <div class="home-content">
-    <section class="overview-section">
-      <Overview
-        title="Titre"
-        imageUrl="https://picsum.photos/1280/720"
-        playHref="/watch_room"
-      />
-    </section>
-  </div>
+  {#if !isSearching}
+    <div class="overview-chat-container">
+      <div class="home-content">
+        <section class="overview-section">
+          <Overview
+            title="Titre"
+            imageUrl="https://picsum.photos/1280/720"
+            playHref="/watch_room"
+          />
+        </section>
+      </div>
 
-  <aside class="chat-sidebar">
-      <Chat
-        {directMessageContact}
-        onBackToGlobalChat={() => (directMessageContact = null)}
-        onDirectMessage={(contact) => (directMessageContact = contact)}
-      />
-    </aside>
+      <aside class="chat-sidebar">
+        <Chat
+          {directMessageContact}
+          onBackToGlobalChat={() => (directMessageContact = null)}
+          onDirectMessage={(contact) => (directMessageContact = contact)}
+        />
+      </aside>
+    </div>
+  {/if}
 
-    <section class="browse-section" aria-label="Browse colors">
+  <section class="browse-section" aria-label="Browse colors">
     {#if isSearching}
       <div
         class="grid-container"
@@ -125,10 +129,16 @@
 <style>
   .home-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
-    grid-template-rows: clamp(360px, 36vw, 560px) auto;
-    column-gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr);
     row-gap: 1rem;
+    align-items: stretch;
+  }
+
+  .overview-chat-container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+    grid-template-rows: clamp(360px, 36vw, 560px);
+    column-gap: 0.5rem;
     align-items: stretch;
   }
 
@@ -139,7 +149,6 @@
   }
 
   .browse-section {
-    grid-column: 1 / -1;
     min-width: 0;
   }
 
@@ -183,9 +192,9 @@
   }
 
   @media (max-width: 1000px) {
-    .home-layout {
+    .overview-chat-container {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto;
+      grid-template-rows: auto auto;
     }
 
     .chat-sidebar {

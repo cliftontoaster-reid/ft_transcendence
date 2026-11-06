@@ -1,22 +1,25 @@
 <script lang="ts">
   import ContactsSidebar from '$lib/components/Contacts_sidebar.svelte';
+  import { searchChatEmojis } from '$lib/chat/emoji';
   import { chatStore } from '$lib/chat/store.svelte';
   import { prepare, layout } from '@chenglou/pretext';
   import { onMount, onDestroy } from 'svelte';
 
-  let {
-    directMessageContact = null,
-    onBackToGlobalChat,
-    onDirectMessage
-  }: {
-    directMessageContact?: string | null;
-    onBackToGlobalChat?: () => void;
-    onDirectMessage?: (contact: string) => void;
-  } = $props();
+	let {
+		directMessageContact = null,
+		onBackToGlobalChat,
+		onDirectMessage
+	}: {
+		directMessageContact?: string | null;
+		onBackToGlobalChat?: () => void;
+		onDirectMessage?: (contact: string) => void;
+	} = $props();
 
   let inputMessage = $state('');
   let chatMessagesRef: HTMLDivElement | null = null;
   let isInitialized = $state(false);
+  let isEmojiPickerOpen = $state(false);
+  let emojiSearchQuery = $state('');
 
   // Pretext prepared text cache
   const preparedTextCache = new Map<string, ReturnType<typeof prepare>>();
@@ -25,6 +28,7 @@
   const messages = $derived(chatStore.currentMessages);
   const dmChannels = $derived(chatStore.dmChannels);
   const knownUsers = $derived(chatStore.knownUsersList);
+  const visibleEmojis = $derived(searchChatEmojis(emojiSearchQuery));
   const currentChannelName = $derived(
     chatStore.currentChannelId === 'global' 
       ? 'Chat général' 
@@ -82,6 +86,7 @@
 
   function handleSendMessage(e: Event) {
     e.preventDefault();
+    if (isEmojiPickerOpen) return;
     const text = inputMessage.trim();
     if (!text) return;
     
@@ -90,6 +95,21 @@
     
     // Scroll to bottom after message is sent
     setTimeout(scrollToBottom, 0);
+  }
+
+  function addEmoji(emoji: string) {
+    inputMessage += emoji;
+    closeEmojiPicker();
+  }
+
+  function closeEmojiPicker() {
+    isEmojiPickerOpen = false;
+    emojiSearchQuery = '';
+  }
+
+  function toggleEmojiPicker() {
+    isEmojiPickerOpen = !isEmojiPickerOpen;
+    emojiSearchQuery = '';
   }
 
   function handleBackToGlobal() {
@@ -164,6 +184,34 @@
     </div>
 
     <form class="chat-input-form" onsubmit={handleSendMessage}>
+      {#if isEmojiPickerOpen}
+        <div id="chat-emoji-picker" class="emoji-picker" role="group" aria-label="Choisir un emoji">
+          <input
+            class="emoji-search"
+            type="search"
+            bind:value={emojiSearchQuery}
+            placeholder="Search emoji..."
+            aria-label="Search emoji"
+            autocomplete="off"
+          />
+          {#if visibleEmojis.length > 0}
+            <div class="emoji-grid">
+              {#each visibleEmojis as emoji (emoji.glyph)}
+                <button
+                  class="emoji-option"
+                  type="button"
+                  aria-label={`Insert ${emoji.glyph}`}
+                  onclick={() => addEmoji(emoji.glyph)}
+                >
+                  {emoji.glyph}
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <p class="emoji-empty">No emoji found</p>
+          {/if}
+        </div>
+      {/if}
       <input
         type="text"
         bind:value={inputMessage}
@@ -171,9 +219,22 @@
           ? `Message à ${currentChannelName}...`
           : 'Écrire un message...'}
         autocomplete="off"
+        onfocus={closeEmojiPicker}
         disabled={!isConnected}
       />
-      <button type="submit" disabled={!isConnected || !inputMessage.trim()}>
+      <button
+        class="emoji-toggle"
+        type="button"
+        aria-label="Ouvrir les emojis"
+        title="Ouvrir les emojis"
+        aria-expanded={isEmojiPickerOpen}
+        aria-controls={isEmojiPickerOpen ? 'chat-emoji-picker' : undefined}
+        onclick={toggleEmojiPicker}
+        disabled={!isConnected}
+      >
+        ☺
+      </button>
+      <button type="submit" disabled={!isConnected || isEmojiPickerOpen || !inputMessage.trim()}>
         Send
       </button>
     </form>
@@ -199,35 +260,32 @@
       0 0 16px 3px rgb(255 122 26 / 8%);
     transition: box-shadow 0.25s ease;
   }
-
+/*
   .chat-container.connected {
     border-color: #22c55e;
   }
+*/
+	.conversation {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		min-width: 0;
+		height: 100%;
+	}
 
-  .conversation {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    height: 100%;
-  }
+	.chat-container:hover,
+	.chat-container:focus-within {
+		box-shadow: none;
+	}
 
-  .chat-container:hover,
-  .chat-container:focus-within {
-    box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.4),
-      0 0 8px 2px rgb(255 122 26 / 65%),
-      0 0 24px 6px rgb(255 122 26 / 30%);
-  }
-
-  .chat-header {
-    background: rgb(32 32 36 / 75%);
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    border-bottom: 1px solid #27272a;
-  }
+	.chat-header {
+		background: rgb(32 32 36 / 75%);
+		padding: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		border-bottom: 1px solid #27272a;
+	}
 
   .status-dot {
     width: 10px;
@@ -242,11 +300,11 @@
     box-shadow: 0 0 8px #22c55e;
   }
 
-  .chat-header h3 {
-    margin: 0;
-    color: #ffffff;
-    font-size: 1rem;
-  }
+	.chat-header h3 {
+		margin: 0;
+		color: #ffffff;
+		font-size: 1rem;
+	}
 
   .back-button {
     border: 0;
@@ -262,23 +320,23 @@
     color: #ffad5c;
   }
 
-  .chat-messages {
-    flex: 1;
-    padding: 1rem;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
+	.chat-messages {
+		flex: 1;
+		padding: 1rem;
+		min-height: 0;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
 
-  .empty-chat {
-    color: #71717a;
-    font-size: 0.85rem;
-    text-align: center;
-    margin: auto 0;
-    align-self: center;
-  }
+	.empty-chat {
+		color: #71717a;
+		font-size: 0.85rem;
+		text-align: center;
+		margin: auto 0;
+		align-self: center;
+	}
 
   .message {
     padding: 0.75rem 1rem;
@@ -347,11 +405,75 @@
     text-align: right;
   }
 
-  .chat-input-form {
-    flex: 0 0 auto;
+	.chat-input-form {
+		flex: 0 0 auto;
+		display: flex;
+		position: relative;
+		border-top: 1px solid #27272a;
+		background: rgb(18 18 18 / 75%);
+	}
+
+  .emoji-picker {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 8px;
+    z-index: 10;
     display: flex;
-    border-top: 1px solid #27272a;
-    background: rgb(18 18 18 / 75%);
+    flex-direction: column;
+    gap: 8px;
+    width: min(208px, calc(100vw - 32px));
+    max-height: min(300px, 50vh);
+    overflow: hidden;
+    padding: 8px;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    background: #18181b;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  }
+
+  .chat-input-form .emoji-search {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #3f3f46;
+    border-radius: 4px;
+    background: #27272a;
+    color: #ffffff;
+  }
+
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 40px);
+    justify-content: center;
+    gap: 4px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .emoji-empty {
+    margin: 0;
+    padding: 8px;
+    color: #a1a1aa;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .chat-input-form .emoji-option {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 1.25rem;
+  }
+
+  .chat-input-form .emoji-option:hover,
+  .chat-input-form .emoji-option:focus-visible {
+    background: #3f3f46;
   }
 
   .chat-input-form input {
@@ -373,18 +495,31 @@
     color: #71717a;
   }
 
-  .chat-input-form button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #8f015f;
-    color: white;
-    border: none;
-    padding: 0 1.25rem;
-    font-size: 0.8rem;
-    font-weight: 100;
-    cursor: pointer;
-    transition: background 0.2s;
+	.chat-input-form button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #8f015f;
+		color: white;
+		border: none;
+		padding: 0 1.25rem;
+		font-size: 0.8rem;
+		font-weight: 100;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+  .chat-input-form .emoji-toggle {
+    flex: 0 0 44px;
+    padding: 0;
+    background: transparent;
+    color: #a1a1aa;
+    font-size: 1.4rem;
+  }
+
+  .chat-input-form .emoji-toggle:hover:not(:disabled) {
+    background: #27272a;
+    color: #e4e4e7;
   }
 
   .chat-input-form button:hover:not(:disabled) {
@@ -396,13 +531,13 @@
     cursor: not-allowed;
   }
 
-  @media (max-width: 520px) {
-    .chat-container {
-      flex-direction: column;
-    }
+	@media (max-width: 520px) {
+		.chat-container {
+			flex-direction: column;
+		}
 
-    .conversation {
-      min-height: 300px;
-    }
-  }
+		.conversation {
+			min-height: 300px;
+		}
+	}
 </style>

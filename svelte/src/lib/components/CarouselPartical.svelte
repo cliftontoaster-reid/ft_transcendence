@@ -11,6 +11,7 @@
     title: string;
   } = $props();
 
+  // All cards navigate to their detail page normally
   const colorUrl = $derived(resolve(`/colors/${slug}`));
 
   let startTime = 0;
