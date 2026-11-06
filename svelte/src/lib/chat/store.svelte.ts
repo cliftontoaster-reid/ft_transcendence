@@ -1,7 +1,6 @@
 import { ChatClient, type ChatEvent } from './client';
 import type { Message, ChannelSnapshot, UserJoined, UserLeft, MessageEdited } from '$lib/proto/dionysus/chat/v1/message_pb';
 import type { UserID } from '$lib/proto/dionysus/user/v1/user_pb';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface ChatMessage {
   id: string;
@@ -54,16 +53,16 @@ export class ChatStore {
   isConnected = $state(false);
   connectionError = $state<string | null>(null);
   unsubscribe: (() => void) | null = null;
-  
+
   // Track known users by ID
   knownUsers = $state<Record<string, KnownUser>>({});
 
   async connect(userId: Uint8Array, token: string, username: string = 'Moi') {
     this.currentUserName = username;
     this.currentUserId = uuidToString(userId);
-    
+
     this.unsubscribe = this.client.on((event) => this.handleEvent(event));
-    
+
     try {
       await this.client.connect(userId, token);
     } catch (e) {
@@ -81,36 +80,36 @@ export class ChatStore {
         const globalId = new TextEncoder().encode('global');
         this.client.joinChannel(globalId);
         break;
-        
+
       case 'disconnected':
         this.isConnected = false;
         break;
-        
+
       case 'error':
         this.connectionError = event.error.message;
         console.error('[ChatStore] Server error:', event.error.code, event.error.message);
         break;
-        
+
       case 'snapshot':
         this.handleSnapshot(event.snapshot);
         break;
-        
+
       case 'message':
         this.handleMessage(event.message);
         break;
-        
+
       case 'edited':
         this.handleEdited(event.edited);
         break;
-        
+
       case 'joined':
         this.handleJoined(event.joined);
         break;
-        
+
       case 'left':
         this.handleLeft(event.left);
         break;
-        
+
       case 'pong':
         break;
     }
@@ -120,40 +119,40 @@ export class ChatStore {
     if (!snapshot.room?.id?.value?.value) {
       return;
     }
-    
+
     const channelIdBytes = snapshot.room.id.value.value;
     // Check if this is the global channel (bytes for "global")
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length && 
+    const isGlobal = channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
     const channelName = snapshot.room.name || 'Unknown';
     const isDM = channelName.startsWith('dm:');
-    
+
     // Track users from participants
     for (const participant of snapshot.room.participant || []) {
       const participantId = userIdToString(participant.id);
       const participantName = participant.name || userIdToName(participant.id);
       this.knownUsers[participantId] = { id: participantId, name: participantName };
     }
-    
+
     this.channels[channelId] = {
       id: channelId,
       name: channelName,
       type: isDM ? 'dm' : 'global',
       participants: snapshot.room.participant?.map(p => p.name || userIdToString(p.id)) || [],
     };
-    
+
     if (!this.messagesByChannel[channelId]) {
       this.messagesByChannel[channelId] = [];
     }
-    
+
     const messages = snapshot.recentMessages || [];
     const chatMessages: ChatMessage[] = messages.map(msg => {
       const senderId = userIdToString(msg.senderId);
       // Track known user
       this.knownUsers[senderId] = { id: senderId, name: userIdToName(msg.senderId) };
-      
+
       return {
         id: uuidToString(msg.id?.value?.value || new Uint8Array()),
         senderId,
@@ -164,9 +163,9 @@ export class ChatStore {
         repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined,
       };
     });
-    
+
     this.messagesByChannel[channelId] = chatMessages;
-    
+
     if (!this.currentChannelId) {
       this.currentChannelId = channelId;
     }
@@ -174,24 +173,24 @@ export class ChatStore {
 
   private handleMessage(msg: Message) {
     if (!msg.roomId?.value?.value) return;
-    
+
     const channelIdBytes = msg.roomId.value.value;
     // Check if this is the global channel (bytes for "global")
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length && 
+    const isGlobal = channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
-    
+
     const senderId = userIdToString(msg.senderId);
     const senderName = userIdToName(msg.senderId);
-    
+
     // Track known user
     this.knownUsers[senderId] = { id: senderId, name: senderName };
-    
+
     if (!this.messagesByChannel[channelId]) {
       this.messagesByChannel[channelId] = [];
     }
-    
+
     const chatMessage: ChatMessage = {
       id: uuidToString(msg.id?.value?.value || new Uint8Array()),
       senderId,
@@ -201,9 +200,9 @@ export class ChatStore {
       isOwn: senderId === this.currentUserId,
       repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined,
     };
-    
-    
-    
+
+
+
     const messages = this.messagesByChannel[channelId] || [];
     messages.push(chatMessage);
     this.messagesByChannel[channelId] = [...messages];
@@ -211,9 +210,9 @@ export class ChatStore {
 
   private handleEdited(edited: MessageEdited) {
     if (!edited.id?.value?.value) return;
-    
+
     const messageId = uuidToString(edited.id.value.value);
-    
+
     for (const channelId of Object.keys(this.messagesByChannel)) {
       const messages = this.messagesByChannel[channelId];
       const index = messages.findIndex(m => m.id === messageId);
@@ -231,19 +230,19 @@ export class ChatStore {
 
   private handleJoined(joined: UserJoined) {
     if (!joined.channelId?.value?.value || !joined.user) return;
-    
+
     const channelIdBytes = joined.channelId.value.value;
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length && 
+    const isGlobal = channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
-    
+
     const channel = this.channels[channelId];
     if (channel) {
       const participants = [...channel.participants, joined.user.name || 'Unknown'];
       this.channels[channelId] = { ...channel, participants };
     }
-    
+
     // Track the user who joined
     const userId = userIdToString(joined.user.id);
     const userName = joined.user.name || userIdToName(joined.user.id);
@@ -252,10 +251,10 @@ export class ChatStore {
 
   private handleLeft(left: UserLeft) {
     if (!left.channelId?.value?.value || !left.userId?.value?.value) return;
-    
+
     const channelIdBytes = left.channelId.value.value;
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length && 
+    const isGlobal = channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
     const userId = uuidToString(left.userId.value.value);
@@ -305,11 +304,11 @@ export class ChatStore {
 
   sendMessage(text: string) {
     if (!this.currentChannelId || !text.trim()) return;
-    
-    const channelId = this.currentChannelId === 'global' 
+
+    const channelId = this.currentChannelId === 'global'
       ? new TextEncoder().encode('global')
       : new TextEncoder().encode(this.currentChannelId);
-    
+
     this.client.sendMessage(channelId, text.trim());
   }
 

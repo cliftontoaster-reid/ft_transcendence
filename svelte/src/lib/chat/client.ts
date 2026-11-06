@@ -22,13 +22,6 @@ import {
   SendMessageSchema,
   EditMessageSchema,
   PingSchema,
-  MessageSchema,
-  MessageEditedSchema,
-  UserJoinedSchema,
-  UserLeftSchema,
-  ChannelSnapshotSchema,
-  ErrorSchema,
-  PongSchema,
   MessageIDSchema,
 } from '$lib/proto/dionysus/chat/v1/message_pb';
 import type { UserID } from '$lib/proto/dionysus/user/v1/user_pb';
@@ -99,7 +92,7 @@ export class ChatClient {
 
         this.ws.onerror = (event) => {
           console.error('[ChatClient] Error:', event);
-          reject(new Error('WebSocket connection failed'));
+          reject(new globalThis.Error('WebSocket connection failed'));
         };
 
         this.ws.onmessage = (event) => {
