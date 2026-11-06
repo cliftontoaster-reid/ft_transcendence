@@ -24,6 +24,7 @@
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^22.20.5",
+		"@types/uuid": "^10.0.0",
 		"@vitest/browser-playwright": "^4.1.11",
 		"eslint": "^10.12.0",
 		"eslint-config-prettier": "^10.1.8",
@@ -42,9 +43,12 @@
 		"vitest-browser-svelte": "^2.2.1"
 	},
 	"dependencies": {
-		"@bufbuild/protobuf": "^2.16.0",
-		"svelte-video-player": "^2.2.0",
+		"@bufbuild/protobuf": "^2.17.0",
+		"@chenglou/pretext": "^1.0.0",
 		"@material-symbols-svg/svelte": "^0.15.0",
-		"svelte-carousel": "^1.0.25"
+		"google-protobuf": "^4.0.3",
+		"svelte-carousel": "^1.0.25",
+		"svelte-video-player": "^2.2.0",
+		"uuid": "^14.0.3"
 	}
 }
