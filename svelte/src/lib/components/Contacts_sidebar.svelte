@@ -1,26 +1,45 @@
 <script lang="ts">
   import ContactActivity from '$lib/components/ContactActivity.svelte';
 
+  interface User {
+    id: string;
+    name: string;
+  }
+
   let {
     onDirectMessage,
     embedded = false,
-    chatContacts = []
+    knownUsers = []
   }: {
-    onDirectMessage?: (contact: string) => void;
+    onDirectMessage?: (userId: string) => void;
     embedded?: boolean;
-    chatContacts?: string[];
+    knownUsers?: User[];
   } = $props();
 
-  let contacts = $state([
-    { name: 'Julien', initials: 'J', online: true },
-    { name: 'Léo', initials: 'L', online: true },
-    { name: 'Bastien', initials: 'B', online: false },
+  // Use knownUsers from parent, fallback to hardcoded for backward compatibility
+  let contacts = $state<{ id: string; name: string; initials: string; online: boolean }[]>([
+    { id: 'julien', name: 'Julien', initials: 'J', online: true },
+    { id: 'leo', name: 'Léo', initials: 'L', online: true },
+    { id: 'bastien', name: 'Bastien', initials: 'B', online: false },
   ]);
+  
+  // Update contacts when knownUsers changes
+  $effect(() => {
+    if (knownUsers.length > 0) {
+      contacts = knownUsers.map(user => ({
+        id: user.id,
+        name: user.name,
+        initials: user.name.charAt(0).toUpperCase(),
+        online: true, // Assume online if in known users
+      }));
+    }
+  });
+
   const actions = ['Send a direct message', 'Invite to a room', 'View activity'];
 
   let activeContact = $state<string | null>(null);
   let selectedAction = $state('');
-  let activityContact = $state<(typeof contacts)[number] | null>(null);
+  let activityContact = $state<{ id: string; name: string; initials: string; online: boolean } | null>(null);
   let contactFilter = $state('all');
   let isAddContactOpen = $state(false);
   let newContactName = $state('');
@@ -28,25 +47,26 @@
   let visibleContacts = $derived(
     contacts.filter((contact) => {
       if (contactFilter === 'online') return contact.online;
-      if (contactFilter === 'chats') return chatContacts.includes(contact.name);
+      if (contactFilter === 'chats') return true; // All known users are in chats
       return true;
     }),
   );
 
-  function toggleContact(name: string) {
-    activeContact = activeContact === name ? null : name;
+  function toggleContact(id: string) {
+    activeContact = activeContact === id ? null : id;
     selectedAction = '';
   }
 
-  function chooseAction(action: string, contact: string) {
+  function chooseAction(action: string, contactId: string) {
+    const contact = contacts.find((item) => item.id === contactId);
     if (action === 'Send a direct message') {
-      onDirectMessage?.(contact);
+      onDirectMessage?.(contactId);
       selectedAction = '';
     } else if (action === 'View activity') {
-      activityContact = contacts.find((item) => item.name === contact) ?? null;
+      activityContact = contact ?? null;
       selectedAction = '';
     } else {
-      selectedAction = `${action} — ${contact} (coming soon)`;
+      selectedAction = `${action} — ${contact?.name ?? contactId} (coming soon)`;
     }
     activeContact = null;
   }
@@ -63,7 +83,8 @@
       return;
     }
 
-    contacts.push({ name, initials: name.charAt(0).toUpperCase(), online: false });
+    const id = name.toLowerCase().replace(/\s+/g, '-');
+    contacts.push({ id, name, initials: name.charAt(0).toUpperCase(), online: false });
     newContactName = '';
     addContactError = '';
     isAddContactOpen = false;
@@ -134,14 +155,14 @@
       </form>
     {/if}
     <ul class="contact-list">
-      {#each visibleContacts as contact (contact.name)}
+      {#each visibleContacts as contact (contact.id)}
         <li class="contact-item">
           <button
             class="contact"
             type="button"
             aria-haspopup="menu"
-            aria-expanded={activeContact === contact.name}
-            onclick={() => toggleContact(contact.name)}
+            aria-expanded={activeContact === contact.id}
+            onclick={() => toggleContact(contact.id)}
           >
             <span class="contact-avatar">{contact.initials}</span>
             <span class="contact-name">{contact.name}</span>
@@ -151,14 +172,14 @@
               aria-label={contact.online ? 'Online' : 'Offline'}
             ></span>
           </button>
-          {#if activeContact === contact.name}
+          {#if activeContact === contact.id}
             <div class="contact-actions" role="menu" aria-label={`Actions pour ${contact.name}`}>
               {#each actions as action (action)}
                 <button
                   class="contact-action"
                   type="button"
                   role="menuitem"
-                  onclick={() => chooseAction(action, contact.name)}
+                  onclick={() => chooseAction(action, contact.id)}
                 >
                   {action}
                 </button>
