@@ -42,12 +42,12 @@
 <!-- Navbar -->
 <header class="site-header">
 	<nav class="nav-container">
-		<a href="/" class="logo">Dyonisus</a>
+		<a href="/" class="logo" data-sveltekit-reload>Dyonisus</a>
 		<div class="nav-search">
 			<SearchBar bind:searchQuery={searchQuery.value} />
 		</div>
 		<div class="nav-links">
-			<a href="/" class="nav-item" title="Home">
+			<a href="/" class="nav-item" data-sveltekit-reload title="Home">
 				<Home class="icon" />
 			</a>
 			<a href="/movies" class="nav-item" title="Movies">
