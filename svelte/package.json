@@ -45,7 +45,7 @@
 	"dependencies": {
 		"@bufbuild/protobuf": "^2.17.0",
 		"@chenglou/pretext": "^1.0.0",
-		"@material-symbols-svg/svelte": "^0.15.0",
+		"@material-symbols-svg/svelte": "^0.16.0",
 		"google-protobuf": "^4.0.3",
 		"svelte-carousel": "^1.0.25",
 		"svelte-video-player": "^2.2.0",
