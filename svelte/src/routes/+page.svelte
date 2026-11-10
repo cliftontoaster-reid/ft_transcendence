@@ -21,7 +21,7 @@
   import { getContext } from 'svelte';
   import Color from '$lib/components/CarouselPartical.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
-  import Chat from '$lib/components/Chat.svelte';
+  import Chat from '$lib/components/chat/Chat.svelte';
   import Overview from '$lib/components/Overview.svelte';
   import { colors } from '$lib/colors';
   import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
