@@ -5,12 +5,12 @@ edition = "2024"
 
 [dependencies]
 dash-mpd = "0.20.5"
-diesel = { version = "2.3.13", features = ["postgres"] }
+diesel = { version = "2.3.14", features = ["postgres"] }
 dionysus_db = { version = "0.1.0", path = "../dionysus_db" }
 dionysus_proto = { version = "0.1.0", path = "../dionysus_proto" }
-rocket = { version = "0.5.1", features = ["json"] }
-tokio = { version = "1.53.1", features = ["full"] }
-tonic = "0.14.6"
+rocket = { version = "0.5.2", features = ["json"] }
+tokio = { version = "1.54.1", features = ["full"] }
+tonic = "0.14.9"
 prost-types = "0.14.4"
 uuid = { version = "1", features = ["v4"] }
 tracing = "0.1"
