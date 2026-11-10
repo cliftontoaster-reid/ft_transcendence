@@ -35,6 +35,10 @@
     }
   }
 
+  function handlePointerMove() {
+    // Intentionally empty - used for drag detection
+  }
+
 </script>
 
 <a
