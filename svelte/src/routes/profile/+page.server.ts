@@ -1,21 +1,10 @@
 import { error, fail } from '@sveltejs/kit';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { userClient } from '$lib/server/grpc';
-import { AgeBracket, type User } from '$lib/proto/dionysus/user/v1/user_pb';
-import { bytesToUuid, uuidToBytes } from '$lib/uuid';
+import { AgeBracket } from '$lib/proto/dionysus/user/v1/user_pb';
+import { toProfile } from '$lib/server/profile';
+import { uuidToBytes } from '$lib/uuid';
 import type { Actions, PageServerLoad } from './$types';
-
-/** Plain, serialisable view of the proto `User` sent to the page. */
-function toProfile(user: User) {
-	return {
-		id: bytesToUuid(user.id?.value?.value ?? new Uint8Array()),
-		username: user.username,
-		displayName: user.displayName,
-		bio: user.bio,
-		avatarUrl: user.avatarUrl,
-		age: user.age ?? AgeBracket.UNSPECIFIED
-	};
-}
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.userId) error(401, 'Not authenticated');

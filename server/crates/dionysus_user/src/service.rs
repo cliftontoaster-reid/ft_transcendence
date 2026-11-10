@@ -1,10 +1,11 @@
-use std::sync::Mutex;
+use std::{collections::HashSet, sync::Mutex};
 
 use diesel::{PgConnection, result::Error as DieselError};
 use dionysus_db::{
-  create_user, find_user, is_username_conflict, list_user_friends,
+  create_user, find_user, find_user_by_username, find_users_by_ids, is_username_conflict,
+  list_user_friends,
   models::{NewUser, User, UserProfileChanges},
-  update_user_profile, validate_profile,
+  update_user_profile, username_exists, validate_profile,
 };
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -12,11 +13,17 @@ use uuid::Uuid;
 use dionysus_proto::dionysus::{
   common::v1::Uuid as ProtoUuid,
   user::v1::{
-    AgeBracket, CreateProfileRequest, CreateProfileResponse, GetFriendListRequest,
-    GetFriendListResponse, GetProfileRequest, GetProfileResponse, UpdateProfileRequest,
-    UpdateProfileResponse, User as ProtoUser, UserId, user_service_server::UserService,
+    AgeBracket, BatchGetProfilesRequest, BatchGetProfilesResponse,
+    CheckUsernameAvailabilityRequest, CheckUsernameAvailabilityResponse, CreateProfileRequest,
+    CreateProfileResponse, GetFriendListRequest, GetFriendListResponse,
+    GetProfileByUsernameRequest, GetProfileByUsernameResponse, GetProfileRequest,
+    GetProfileResponse, UpdateProfileRequest, UpdateProfileResponse, User as ProtoUser, UserId,
+    user_service_server::UserService,
   },
 };
+
+/// Upper bound documented on `BatchGetProfilesRequest.user_ids`.
+const MAX_BATCH_PROFILES: usize = 100;
 
 pub struct UserServiceImpl {
   connection: Mutex<PgConnection>,
@@ -79,6 +86,10 @@ impl UserServiceImpl {
       avatar_url: user.avatar_url.unwrap_or_default(),
       age: user.age_bracket,
     }
+  }
+
+  fn require_username(username: &str) -> Result<(), Status> {
+    validate_profile(Some(username), None, None, None, None).map_err(Status::invalid_argument)
   }
 
   fn age_value(age: Option<i32>) -> Result<Option<i32>, Status> {
@@ -144,6 +155,73 @@ impl UserService for UserServiceImpl {
       .ok_or_else(|| Status::not_found("user not found"))?;
     Ok(Response::new(GetProfileResponse {
       user: Some(Self::to_proto(user)),
+    }))
+  }
+
+  async fn get_profile_by_username(
+    &self,
+    request: Request<GetProfileByUsernameRequest>,
+  ) -> Result<Response<GetProfileByUsernameResponse>, Status> {
+    let username = request.into_inner().username;
+    Self::require_username(&username)?;
+    let mut connection = self
+      .connection
+      .lock()
+      .map_err(|_| Status::internal("database connection lock poisoned"))?;
+    let user = find_user_by_username(&mut connection, &username)
+      .map_err(Self::database_error)?
+      .ok_or_else(|| Status::not_found("user not found"))?;
+    Ok(Response::new(GetProfileByUsernameResponse {
+      user: Some(Self::to_proto(user)),
+    }))
+  }
+
+  async fn batch_get_profiles(
+    &self,
+    request: Request<BatchGetProfilesRequest>,
+  ) -> Result<Response<BatchGetProfilesResponse>, Status> {
+    let request = request.into_inner();
+    if request.user_ids.len() > MAX_BATCH_PROFILES {
+      return Err(Status::invalid_argument(format!(
+        "user_ids must contain at most {MAX_BATCH_PROFILES} entries"
+      )));
+    }
+    let mut seen = HashSet::new();
+    let mut ids = Vec::with_capacity(request.user_ids.len());
+    for id in request.user_ids {
+      let id = Self::id_from_proto(Some(id), "user_ids")?;
+      if seen.insert(id) {
+        ids.push(id);
+      }
+    }
+    if ids.is_empty() {
+      return Ok(Response::new(BatchGetProfilesResponse {
+        users: Vec::new(),
+      }));
+    }
+    let mut connection = self
+      .connection
+      .lock()
+      .map_err(|_| Status::internal("database connection lock poisoned"))?;
+    let users = find_users_by_ids(&mut connection, &ids).map_err(Self::database_error)?;
+    Ok(Response::new(BatchGetProfilesResponse {
+      users: users.into_iter().map(Self::to_proto).collect(),
+    }))
+  }
+
+  async fn check_username_availability(
+    &self,
+    request: Request<CheckUsernameAvailabilityRequest>,
+  ) -> Result<Response<CheckUsernameAvailabilityResponse>, Status> {
+    let username = request.into_inner().username;
+    Self::require_username(&username)?;
+    let mut connection = self
+      .connection
+      .lock()
+      .map_err(|_| Status::internal("database connection lock poisoned"))?;
+    let taken = username_exists(&mut connection, &username).map_err(Self::database_error)?;
+    Ok(Response::new(CheckUsernameAvailabilityResponse {
+      available: !taken,
     }))
   }
 
