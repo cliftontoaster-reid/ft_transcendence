@@ -72,9 +72,44 @@ pub struct LoginRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct AuthenticatedUser {
   pub provider: String,
+  pub issuer: String,
   pub subject: String,
   pub email: Option<String>,
+  /// `None` when the provider did not state whether the email is verified.
+  pub email_verified: Option<bool>,
   pub preferred_username: Option<String>,
+  pub groups: Vec<String>,
+}
+
+impl AuthenticatedUser {
+  /// Best-effort human-readable name for provisioning a new account.
+  pub fn display_name_hint(&self) -> String {
+    self
+      .preferred_username
+      .as_deref()
+      .map(str::trim)
+      .filter(|value| !value.is_empty())
+      .map(str::to_owned)
+      .or_else(|| {
+        self
+          .email
+          .as_deref()
+          .and_then(|email| email.split('@').next())
+          .map(str::to_owned)
+      })
+      .unwrap_or_else(|| format!("{}:{}", self.provider, self.subject))
+  }
+
+  /// The email may only be trusted for account linking when the provider did
+  /// not explicitly mark it as unverified. Oversized values are dropped rather
+  /// than overflowing the `users.email` column.
+  pub fn trustworthy_email(&self) -> Option<&str> {
+    self
+      .email
+      .as_deref()
+      .filter(|email| email.len() <= 320)
+      .filter(|_| self.email_verified != Some(false))
+  }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -93,6 +128,14 @@ pub struct LoginUrlService {
 impl LoginUrlService {
   pub fn new(config: OidcConfig, redis: redis::Client) -> Self {
     Self { config, redis }
+  }
+
+  pub fn config(&self) -> &OidcConfig {
+    &self.config
+  }
+
+  pub fn provider_config(&self, provider_name: &str) -> Option<&OidcProviderConfig> {
+    self.config.provider(provider_name)
   }
 
   pub async fn authorization_url(
@@ -215,6 +258,10 @@ impl LoginUrlService {
     let id_token = token_response
       .id_token()
       .ok_or(LoginUrlError::MissingIdToken)?;
+    // The signature is verified by `claims()` below. Reading the same raw token
+    // afterwards is safe and lets us surface non-standard claims such as the
+    // provider's group list without defining a custom OIDC client type.
+    let raw_id_token = id_token.to_string();
     let expected_nonce = Nonce::new(transaction.nonce);
     let claims = id_token
       .claims(&client.id_token_verifier(), &expected_nonce)
@@ -222,12 +269,37 @@ impl LoginUrlService {
 
     Ok(AuthenticatedUser {
       provider: transaction.provider,
+      issuer: claims.issuer().as_str().to_owned(),
       subject: claims.subject().as_str().to_owned(),
       email: claims.email().map(|email| email.as_str().to_owned()),
+      email_verified: claims.email_verified(),
       preferred_username: claims
         .preferred_username()
         .map(|name| name.as_str().to_owned()),
+      groups: extract_claim_values(&raw_id_token, &provider.groups_claim),
     })
+  }
+}
+
+/// Read a string-or-array claim out of an already-verified JWT payload.
+fn extract_claim_values(token: &str, claim: &str) -> Vec<String> {
+  let Some(payload) = token.split('.').nth(1) else {
+    return Vec::new();
+  };
+  let Ok(decoded) = URL_SAFE_NO_PAD.decode(payload) else {
+    return Vec::new();
+  };
+  let Ok(value) = serde_json::from_slice::<serde_json::Value>(&decoded) else {
+    return Vec::new();
+  };
+
+  match value.get(claim) {
+    Some(serde_json::Value::Array(items)) => items
+      .iter()
+      .filter_map(|item| item.as_str().map(str::to_owned))
+      .collect(),
+    Some(serde_json::Value::String(value)) => value.split_whitespace().map(str::to_owned).collect(),
+    _ => Vec::new(),
   }
 }
 
@@ -321,10 +393,37 @@ mod tests {
     assert_ne!(generate_state_hash("state-value"), "state-value");
   }
 
+  fn token_with_payload(payload: &serde_json::Value) -> String {
+    let body = URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload).unwrap());
+    format!("header.{body}.signature")
+  }
+
+  #[test]
+  fn reads_array_and_space_delimited_group_claims() {
+    let token = token_with_payload(&serde_json::json!({ "groups": ["a", "b"] }));
+    assert_eq!(
+      extract_claim_values(&token, "groups"),
+      vec!["a".to_string(), "b".to_string()]
+    );
+
+    let token = token_with_payload(&serde_json::json!({ "groups": "a b" }));
+    assert_eq!(
+      extract_claim_values(&token, "groups"),
+      vec!["a".to_string(), "b".to_string()]
+    );
+
+    let token = token_with_payload(&serde_json::json!({ "other": true }));
+    assert!(extract_claim_values(&token, "groups").is_empty());
+
+    assert!(extract_claim_values("not-a-jwt", "groups").is_empty());
+  }
+
   #[tokio::test]
   async fn stores_login_transaction_in_redis_with_ttl() {
-    let redis_url =
-      std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379/".to_string());
+    // Only run where Redis is actually configured (CI sets REDIS_URL).
+    let Ok(redis_url) = std::env::var("REDIS_URL") else {
+      return;
+    };
     let redis = redis::Client::open(redis_url).unwrap();
     let transaction = test_transaction();
     let key = format!(

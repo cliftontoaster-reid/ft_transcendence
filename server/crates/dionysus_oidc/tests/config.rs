@@ -7,6 +7,8 @@ fn parses_wrapped_provider_configuration() {
     r#"
 [oidc]
 default = "keycloak"
+post_login_redirect = "http://localhost:5173/"
+post_logout_redirect = "http://localhost:5173/logged-out"
 
 [oidc.provider.keycloak]
 issuer_url = "https://auth.example.com/realms/main"
@@ -30,6 +32,11 @@ scopes = ["openid", "profile", "email"]
   let provider = config.provider.get("keycloak").unwrap();
 
   assert_eq!(config.default, "keycloak");
+  assert_eq!(
+    config.post_login_redirect,
+    Some(Url::parse("http://localhost:5173/").unwrap())
+  );
+  assert_eq!(provider.groups_claim, "groups");
   assert_eq!(
     provider.redirect_uris,
     vec![Url::parse("http://localhost:8000/auth/callback").unwrap()]
