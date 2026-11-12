@@ -10,7 +10,8 @@ dionysus_metadata_model = { version = "0.1.0", path = "../dionysus_metadata_mode
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.21"
-tracing = "0.1.44"
+tokio = { version = "1.54.1", features = ["full"] }
+tracing = { version = "0.1.44", features = ["async-await"] }
 
 [dev-dependencies]
 serde_json = "1.0.154"
