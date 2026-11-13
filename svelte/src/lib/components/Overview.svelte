@@ -1,7 +1,7 @@
 <script>
   let { 
-    title = 'Film',
-    description = 'description du film',
+    title = 'Movie Title',
+    description = 'Movie description',
     imageUrl = 'https://picsum.photos/1280/720',
     primaryActionText = 'Play',
     secondaryActionText = 'More infos',
@@ -40,9 +40,6 @@
 
       {#if secondaryActionText}
         <button type="button" class="btn secondary" onclick={() => { isModalOpen = true; if (onSecondaryClick) onSecondaryClick(); }}>
-          <svg viewBox="0 0 24 24" fill="currentColor" class="icon info-icon">
-            <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8-8 8z"/>
-          </svg>
           {secondaryActionText}
         </button>
       {/if}
@@ -129,6 +126,7 @@
 
   .title {
     margin: 0 0 0.75rem 0;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: clamp(2rem, 5vw, 3.75rem);
     font-weight: 800;
     line-height: 1.05;
@@ -144,6 +142,7 @@
     opacity: 0.9;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
     display: -webkit-box;
+    line-clamp: 3;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;

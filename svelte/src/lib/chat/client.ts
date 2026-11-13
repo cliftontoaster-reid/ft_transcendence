@@ -163,11 +163,16 @@ export class ChatClient {
     this.sendFrame(frame);
   }
 
-  sendMessage(channelId: Uint8Array, text: string, repliesTo?: { value?: UUID }) {
+  sendMessage(channelId: Uint8Array, text: string, repliesTo?: Uint8Array) {
     const send: SendMessage = create(SendMessageSchema, {
       roomId: create(RoomIDSchema, { value: create(UUIDSchema, { value: channelId }) }),
       message: text,
-      repliesTo: repliesTo ? create(MessageIDSchema, repliesTo) : undefined,
+      repliesTo: repliesTo 
+        ? create(MessageIDSchema, {
+          value: create(UUIDSchema, { value: repliesTo })
+        })
+        : undefined,
+
     });
     const frame: ClientFrame = create(ClientFrameSchema, { payload: { case: 'send', value: send } });
     this.sendFrame(frame);

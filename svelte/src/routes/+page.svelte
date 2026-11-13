@@ -87,6 +87,8 @@
             title="Titre"
             imageUrl="https://picsum.photos/1280/720"
             playHref="/watch_room"
+            onPrimaryClick={() => {}}
+            onSecondaryClick={() => {}}
           />
         </section>
       </div>

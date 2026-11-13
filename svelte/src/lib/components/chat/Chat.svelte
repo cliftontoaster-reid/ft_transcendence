@@ -62,7 +62,12 @@
 	}
 
 	function sendMessage(text: string) {
-		chatStore.sendMessage(text);
+		chatStore.sendMessage(text, replyTo?.id);
+		replyTo = null;
+	}
+
+	function reactToMessage(message: ChatMessage, emoji: string) {
+		chatStore.sendMessage(emoji, message.id);
 	}
 
 	function addEmoji(emoji: string) {
@@ -108,7 +113,11 @@
 	});
 </script>
 
-<div class="chat-container" class:connected={isConnected} class:watch-room={variant === 'watch-room'}>
+<div
+	class="chat-container"
+	class:connected={isConnected}
+	class:watch-room={variant === 'watch-room'}
+>
 	<section class="conversation" aria-label="Conversation">
 		<div class="chat-header">
 			<span class="status-dot" class:connected={isConnected}></span>
@@ -130,9 +139,8 @@
 			currentUserId={myUserId}
 			isDirectMessage={isDM}
 			channelName={currentChannelName}
-			{isEmojiPickerOpen}
-			onToggleEmojiPicker={toggleEmojiPicker}
 			onReply={(message: ChatMessage) => startReply(message)}
+			onReact={reactToMessage}
 		/>
 
 		<MessageComposer
@@ -237,6 +245,5 @@
 		.conversation {
 			min-height: 300px;
 		}
-
 	}
 </style>

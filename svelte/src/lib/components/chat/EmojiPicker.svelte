@@ -3,10 +3,12 @@
 
 	let {
 		open,
+		pickerId = 'chat-emoji-picker',
 		query = $bindable(''),
 		onSelect
 	}: {
 		open: boolean;
+		pickerId?: string;
 		query?: string;
 		onSelect: (emoji: string) => void;
 	} = $props();
@@ -15,7 +17,7 @@
 </script>
 
 {#if open}
-	<div id="chat-emoji-picker" class="emoji-picker" role="group" aria-label="Choisir un emoji">
+	<div id={pickerId} class="emoji-picker" role="group" aria-label="Choisir un emoji">
 		<input
 			class="emoji-search"
 			type="search"

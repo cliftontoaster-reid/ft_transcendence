@@ -302,16 +302,23 @@ export class ChatStore {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  sendMessage(text: string) {
+  sendMessage(text: string, replyTo?: string) {
     if (!this.currentChannelId || !text.trim()) return;
 
     const channelId = this.currentChannelId === 'global'
       ? new TextEncoder().encode('global')
       : new TextEncoder().encode(this.currentChannelId);
 
-    this.client.sendMessage(channelId, text.trim());
-  }
+    const replyToBytes = replyTo
+      ? Uint8Array.from(
+          replyTo.match(/.{2}/g) ?? [],
+          (byte) => Number.parseInt(byte, 16)
+        )
+      : undefined;
 
+    this.client.sendMessage(channelId, text.trim(), replyToBytes);
+  }
+  
   joinChannel(channelId: string) {
     const encoded = new TextEncoder().encode(channelId);
     this.client.joinChannel(encoded);
