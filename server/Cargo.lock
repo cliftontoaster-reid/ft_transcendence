@@ -1558,6 +1558,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dionysus_user"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "dionysus_db",
+ "dionysus_proto",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "directories-next"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

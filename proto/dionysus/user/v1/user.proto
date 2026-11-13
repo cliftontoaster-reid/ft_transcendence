@@ -64,6 +64,32 @@ message UpdateProfileResponse {
   User user = 1;
 }
 
+message GetProfileByUsernameRequest {
+  string username = 1;
+}
+
+message GetProfileByUsernameResponse {
+  User user = 1;
+}
+
+message BatchGetProfilesRequest {
+  // Maximum 100 identifiants, les doublons sont ignorés.
+  repeated UserID user_ids = 1;
+}
+
+message BatchGetProfilesResponse {
+  // Les utilisateurs introuvables sont simplement absents (pas d'erreur NOT_FOUND).
+  repeated User users = 1;
+}
+
+message CheckUsernameAvailabilityRequest {
+  string username = 1;
+}
+
+message CheckUsernameAvailabilityResponse {
+  bool available = 1;
+}
+
 // FRIENDS
 message GetFriendListRequest {
   UserID user_id = 1;
@@ -79,6 +105,12 @@ service UserService {
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
   // Obtenir un profil
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  // Obtenir un profil à partir de son @username
+  rpc GetProfileByUsername(GetProfileByUsernameRequest) returns (GetProfileByUsernameResponse);
+  // Obtenir plusieurs profils en une requête (listes d'amis, chat, salons...)
+  rpc BatchGetProfiles(BatchGetProfilesRequest) returns (BatchGetProfilesResponse);
+  // Savoir si un username est libre (formulaire d'édition du profil)
+  rpc CheckUsernameAvailability(CheckUsernameAvailabilityRequest) returns (CheckUsernameAvailabilityResponse);
   // Modifier un profil
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   // Obtenir la liste d'amis
