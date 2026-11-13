@@ -12,6 +12,6 @@ prost-types = "0.14.4"
 rust_ffmpeg = "1.0.0"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
-tonic = "0.14.6"
+tonic = "0.14.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

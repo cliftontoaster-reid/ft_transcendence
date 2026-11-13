@@ -130,6 +130,19 @@ Table users {
   age_bracket integer
 }
 
+Table user_friends {
+  user_id uuid [not null, ref: > users.id]
+  friend_id uuid [not null, ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, friend_id) [pk]
+    friend_id
+  }
+
+  Note: 'CHECK (user_id <> friend_id)'
+}
+
 Table oidc_identities {
   id uuid [pk, default: `gen_random_uuid()`]
   user_id uuid [not null, ref: > users.id]

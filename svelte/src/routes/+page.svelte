@@ -21,10 +21,11 @@
   import { getContext } from 'svelte';
   import Color from '$lib/components/CarouselPartical.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
-  import Chat from '$lib/components/Chat.svelte';
+  import Chat from '$lib/components/chat/Chat.svelte';
   import Overview from '$lib/components/Overview.svelte';
   import { colors } from '$lib/colors';
   import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
+  import '$lib/components/chat/css/home.scss';
 
   const carouselCategories = [
     {
@@ -78,25 +79,30 @@
 <svelte:window bind:innerWidth />
 
 <div class="home-layout">
-  <div class="home-content">
-    <section class="overview-section">
-      <Overview
-        title="Titre"
-        imageUrl="https://picsum.photos/1280/720"
-        playHref="/watch_room"
-      />
-    </section>
-  </div>
+  {#if !isSearching}
+    <div class="overview-chat-container">
+      <div class="home-content">
+        <section class="overview-section">
+          <Overview
+            title="Titre"
+            imageUrl="https://picsum.photos/1280/720"
+            playHref="/watch_room"
+          />
+        </section>
+      </div>
 
-  <aside class="chat-sidebar">
-      <Chat
-        {directMessageContact}
-        onBackToGlobalChat={() => (directMessageContact = null)}
-        onDirectMessage={(contact) => (directMessageContact = contact)}
-      />
-    </aside>
+      <aside class="chat-sidebar">
+        <Chat
+          variant="home"
+          {directMessageContact}
+          onBackToGlobalChat={() => (directMessageContact = null)}
+          onDirectMessage={(contact) => (directMessageContact = contact)}
+        />
+      </aside>
+    </div>
+  {/if}
 
-    <section class="browse-section" aria-label="Browse colors">
+  <section class="browse-section" aria-label="Browse colors">
     {#if isSearching}
       <div
         class="grid-container"
@@ -118,102 +124,3 @@
     {/if}
   </section>
 </div>
-
-
-
-
-<style>
-  .home-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
-    grid-template-rows: clamp(360px, 36vw, 560px) auto;
-    column-gap: 0.5rem;
-    row-gap: 1rem;
-    align-items: stretch;
-  }
-
-  .home-content {
-    height: 100%;
-    min-width: 0;
-    margin-left: calc(-1 * max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
-  }
-
-  .browse-section {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-
-  .overview-section {
-    width: 100%;
-    height: 100%;
-  }
-
-  .overview-section :global(.overview-container) {
-    height: 100%;
-    aspect-ratio: auto;
-  }
-
-  .grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0rem;
-    width: 100%;
-    margin: 1rem auto 0;
-    padding: 1rem 0;
-    box-sizing: border-box;
-  }
-
-  .chat-sidebar {
-    width: calc(100% + max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
-    margin-right: calc(-1 * max(1.5rem, calc((100vw - 1600px) / 2 + 1.5rem)));
-    height: 100%;
-    min-height: 0;
-    box-sizing: border-box;
-  }
-
-  .chat-sidebar :global(.chat-container) {
-    height: 100%;
-    box-sizing: border-box;
-  }
-
-  .chat-sidebar :global(.chat-messages) {
-    flex: 1;
-    height: 0;
-    min-height: 0;
-  }
-
-  @media (max-width: 1000px) {
-    .home-layout {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto;
-    }
-
-    .chat-sidebar {
-      padding-top: 0;
-    }
-
-    .home-content,
-    .overview-section {
-      height: auto;
-    }
-
-    .overview-section :global(.overview-container) {
-      height: auto;
-      aspect-ratio: 16 / 9;
-    }
-
-    .chat-sidebar :global(.chat-container) {
-      height: auto;
-    }
-
-    .chat-sidebar {
-      height: auto;
-    }
-
-    .chat-sidebar :global(.chat-messages) {
-      flex: initial;
-      height: 300px;
-    }
-
-  }
-</style>

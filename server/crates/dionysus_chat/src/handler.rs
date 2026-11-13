@@ -182,7 +182,7 @@ async fn dispatch(
         .and_then(|i| i.value)
         .map(|u| u.value.to_vec())
         .ok_or("missing id")?;
-      let msg = state
+      let (msg, channel_id) = state
         .edit_message(conn_id, msg_id.clone(), edit.new_message.clone())
         .await?;
       let frame = ServerFrame {
@@ -198,15 +198,8 @@ async fn dispatch(
           },
         )),
       };
-      // broadcast to all channels? We don't know channel; broadcast to all subscribers is expensive.
-      // For MVP, send back to requester only.
-      let conn_tx = {
-        let st = state.inner.read().await;
-        st.connections.get(&conn_id).map(|c| c.sender.clone())
-      };
-      if let Some(tx) = conn_tx {
-        let _ = tx.send(frame).await;
-      }
+      // Broadcast to the channel so all subscribers see the edit
+      state.broadcast(&channel_id, frame).await;
       Ok(())
     }
     Payload::Ping(_) => {

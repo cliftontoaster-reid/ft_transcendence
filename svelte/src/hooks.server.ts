@@ -17,6 +17,10 @@
  */
 
 import type { Handle } from "@sveltejs/kit";
+import { sequence } from "@sveltejs/kit/hooks";
+import { dev } from "$app/environment";
+import { env } from "$env/dynamic/private";
+import { isUuid } from "$lib/uuid";
 import { getTextDirection } from "$lib/paraglide/runtime";
 import { paraglideMiddleware } from "$lib/paraglide/server";
 
@@ -32,4 +36,15 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 		});
 	});
 
-export const handle: Handle = handleParaglide;
+// Sets `event.locals.userId`, the user the gRPC calls act on behalf of.
+// TODO: replace with the real session lookup (sessions table / OIDC login).
+// Until then the id only comes from DEV_USER_ID, and only in dev mode, so a
+// production build can never be tricked into acting as someone else.
+const handleAuth: Handle = ({ event, resolve }) => {
+	if (dev && env.DEV_USER_ID && isUuid(env.DEV_USER_ID)) {
+		event.locals.userId = env.DEV_USER_ID;
+	}
+	return resolve(event);
+};
+
+export const handle: Handle = sequence(handleAuth, handleParaglide);

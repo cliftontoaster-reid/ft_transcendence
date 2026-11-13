@@ -2,8 +2,10 @@ use dionysus_proto::dionysus::chat::v1::{Message, ServerFrame};
 use dionysus_proto::dionysus::common::v1::Uuid;
 use dionysus_proto::dionysus::room::v1::Room;
 use dionysus_proto::dionysus::user::v1::User;
+use dionysus_proto::google::r#type::DateTime;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::{RwLock, mpsc};
 
 pub type ConnId = u64;
@@ -198,6 +200,7 @@ impl AppState {
       return Err("not in channel".to_string());
     }
     let id_bytes = uuid::Uuid::new_v4().as_bytes().to_vec();
+    let now = current_timestamp();
     let msg = Message {
       id: Some(dionysus_proto::dionysus::chat::v1::MessageId {
         value: Some(Uuid {
@@ -216,8 +219,8 @@ impl AppState {
       }),
       message: text,
       replies_to,
-      created_at: None,
-      updated_at: None,
+      created_at: Some(now.clone()),
+      updated_at: Some(now),
     };
     channel.history.push_back(msg.clone());
     while channel.history.len() > self.history_limit {
@@ -231,7 +234,7 @@ impl AppState {
     conn_id: ConnId,
     msg_id: Vec<u8>,
     new_text: String,
-  ) -> Result<Message, String> {
+  ) -> Result<(Message, Vec<u8>), String> {
     let mut state = self.inner.write().await;
     let user_id = state
       .connections
@@ -257,8 +260,11 @@ impl AppState {
           return Err("not owner".to_string());
         }
         m.message = new_text;
-        m.updated_at = None;
-        return Ok(m.clone());
+        let now = current_timestamp();
+        m.updated_at = Some(now);
+        // Return the message and the channel_id for broadcasting
+        let channel_id = channel.room.id.as_ref().and_then(|i| i.value.as_ref()).map(|u| u.value.clone()).unwrap_or_default();
+        return Ok((m.clone(), channel_id));
       }
     }
     Err("message not found".to_string())
@@ -284,4 +290,62 @@ impl AppState {
 pub struct JoinResult {
   pub snapshot: dionysus_proto::dionysus::chat::v1::ChannelSnapshot,
   pub user: Option<User>,
+}
+
+fn current_timestamp() -> DateTime {
+  let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+  let secs = now.as_secs() as i64;
+  let nanos = now.subsec_nanos();
+  
+  // Simple conversion from unix timestamp to date components
+  // Using a basic algorithm (not handling leap seconds perfectly, but good enough)
+  let days = secs / 86400;
+  let mut year = 1970;
+  let mut remaining_days = days;
+  
+  // Approximate year calculation
+  while remaining_days >= 365 {
+    let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    let days_in_year = if is_leap { 366 } else { 365 };
+    if remaining_days >= days_in_year {
+      remaining_days -= days_in_year;
+      year += 1;
+    } else {
+      break;
+    }
+  }
+  
+  // Month/day calculation (simplified)
+  let month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+  let mut month = 1;
+  let mut day = 1;
+  let mut rem = remaining_days;
+  
+  for (i, &md) in month_days.iter().enumerate() {
+    let dim = if i == 1 && is_leap { 29 } else { md };
+    if rem >= dim {
+      rem -= dim;
+      month += 1;
+    } else {
+      day = rem + 1;
+      break;
+    }
+  }
+  
+  let seconds_of_day = secs % 86400;
+  let hours = (seconds_of_day / 3600) as i32;
+  let minutes = ((seconds_of_day % 3600) / 60) as i32;
+  let seconds = (seconds_of_day % 60) as i32;
+  
+  DateTime {
+    year,
+    month,
+    day: day as i32,
+    hours,
+    minutes,
+    seconds,
+    nanos: nanos as i32,
+    time_offset: None,
+  }
 }

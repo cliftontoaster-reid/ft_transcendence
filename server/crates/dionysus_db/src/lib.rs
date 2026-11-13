@@ -1,4 +1,5 @@
 use diesel::{
+  dsl::exists,
   prelude::*,
   result::{DatabaseErrorKind, Error as DieselError},
 };
@@ -46,6 +47,32 @@ pub fn find_user(conn: &mut PgConnection, user_id: Uuid) -> QueryResult<Option<m
     .select(models::User::as_select())
     .first(conn)
     .optional()
+}
+
+pub fn find_user_by_username(
+  conn: &mut PgConnection,
+  username: &str,
+) -> QueryResult<Option<models::User>> {
+  users::table
+    .filter(users::username.eq(username))
+    .select(models::User::as_select())
+    .first(conn)
+    .optional()
+}
+
+/// Users matching `user_ids`, in no particular order. Unknown ids are skipped.
+pub fn find_users_by_ids(
+  conn: &mut PgConnection,
+  user_ids: &[Uuid],
+) -> QueryResult<Vec<models::User>> {
+  users::table
+    .filter(users::id.eq_any(user_ids))
+    .select(models::User::as_select())
+    .load(conn)
+}
+
+pub fn username_exists(conn: &mut PgConnection, username: &str) -> QueryResult<bool> {
+  diesel::select(exists(users::table.filter(users::username.eq(username)))).get_result(conn)
 }
 
 pub fn create_user(
