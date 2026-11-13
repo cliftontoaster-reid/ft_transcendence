@@ -1,6 +1,7 @@
 <script lang="ts">
-  // $lib pointe TOUJOURS vers src/lib/, peu importe où se trouve votre page
+  import Chat from '$lib/components/chat/Chat.svelte';
   import VideoPlayer from '$lib/components/videoPlayer/videoPlayer.svelte';
+  import '$lib/components/chat/css/watch-room.scss';
 
   // Exemple de données pour cette sous-page
   const film = {
@@ -25,45 +26,17 @@
     ← Retour au catalogue
   </button>
 
-  <div class="player-wrapper">
-    <VideoPlayer 
-      src={film.src} 
-      poster={film.poster} 
-      title={film.title} 
-    />
+  <div class="watch-content">
+    <div class="player-wrapper">
+      <VideoPlayer
+        src={film.src}
+        poster={film.poster}
+        title={film.title}
+      />
+    </div>
+
+    <aside class="chat-sidebar" aria-label="Chat de la watch room">
+      <Chat variant="watch-room" />
+    </aside>
   </div>
 </main>
-
-<style>
-  .watch-page {
-    min-height: 100vh;
-    background-color: #0f0f0f;
-    color: white;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-
-  .back-btn {
-    background: none;
-    border: none;
-    color: #aaa;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-bottom: 20px;
-    transition: color 0.2s;
-  }
-
-  .back-btn:hover {
-    color: #fff;
-  }
-
-  /* Taille du lecteur vidéo adaptée à la sous-page */
-  .player-wrapper {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    aspect-ratio: 16 / 9;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-</style>
