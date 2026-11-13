@@ -6,10 +6,12 @@
 	import { onMount, onDestroy } from 'svelte';
 
 	let {
+		variant = 'home',
 		directMessageContact = null,
 		onBackToGlobalChat,
 		onDirectMessage
 	}: {
+		variant?: 'home' | 'watch-room';
 		directMessageContact?: string | null;
 		onBackToGlobalChat?: () => void;
 		onDirectMessage?: (contact: string) => void;
@@ -106,7 +108,7 @@
 	});
 </script>
 
-<div class="chat-container" class:connected={isConnected}>
+<div class="chat-container" class:connected={isConnected} class:watch-room={variant === 'watch-room'}>
 	<section class="conversation" aria-label="Conversation">
 		<div class="chat-header">
 			<span class="status-dot" class:connected={isConnected}></span>
@@ -235,5 +237,6 @@
 		.conversation {
 			min-height: 300px;
 		}
+
 	}
 </style>
