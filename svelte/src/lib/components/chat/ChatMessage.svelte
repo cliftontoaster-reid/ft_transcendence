@@ -18,6 +18,7 @@
 		onReact: (emoji: string) => void;
 	} = $props();
 
+	let reactionButton = $state<HTMLButtonElement | null>(null);
 	let emojiSearchQuery = $state('');
 
 	function selectReaction(emoji: string) {
@@ -40,6 +41,7 @@
 	</span>
 	<div class="message-actions">
 		<button
+			bind:this={reactionButton}
 			type="button"
 			aria-label="Choisir une réaction"
 			title="Réagir"
@@ -55,9 +57,11 @@
 	</div>
 	<EmojiPicker
 		open={isEmojiPickerOpen}
+		anchor={reactionButton}
 		{pickerId}
 		bind:query={emojiSearchQuery}
 		onSelect={selectReaction}
+		onClose={onToggleEmojiPicker}
 	/>
 </div>
 

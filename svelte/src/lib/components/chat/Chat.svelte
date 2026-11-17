@@ -1,13 +1,29 @@
+
 <script lang="ts">
+
+// le fichier chat est répartie sur plusieurs composants pour une meilleure organisation et réutilisabilité. 
+// Le composant principal `Chat.svelte` gère l'état global du chat, y compris la connexion, l'envoi de messages, 
+// et la gestion des messages directs. Il utilise des composants enfants tels que `MessageList` pour afficher les messages,
+//  `MessageComposer` pour composer de nouveaux messages, et `ContactsSidebar` pour afficher les contacts disponibles pour 
+// les messages directs.
+
+
+
+	// Importation des composants et des modules nécessaires
 	import ContactsSidebar from '../Contacts_sidebar.svelte';
 	import { chatStore, type ChatMessage } from '$lib/chat/store.svelte';
 	import MessageList from './MessageList.svelte';
 	import MessageComposer from './MessageComposer.svelte';
+	// onMount et onDestroy sont des fonctions du cycle de vie de Svelte qui permettent d'exécuter du code
+	//  lorsque le composant est monté ou détruit.
 	import { onMount, onDestroy } from 'svelte';
 
+	// let correspond à une variable réactive dans Svelte.
+	// Les variables réactives sont automatiquement mises à jour lorsque leur valeur change,
+	// et elles déclenchent une mise à jour du DOM si elles sont utilisées dans le template du composant.
 	let {
-		variant = 'home',
-		directMessageContact = null,
+		variant = 'home', // la variable est une string qui peut être soit 'home' soit 'watch-room', et elle détermine le style et le comportement du chat.
+		directMessageContact = null, // la variable est une string ou null, et elle représente le contact avec lequel l'utilisateur a ouvert une conversation directe, pour les messages en privé.
 		onBackToGlobalChat,
 		onDirectMessage
 	}: {
@@ -61,25 +77,30 @@
 		}
 	}
 
+	// Functions to handle chat actions
 	function sendMessage(text: string) {
 		chatStore.sendMessage(text, replyTo?.id);
 		replyTo = null;
 	}
 
+	// Function to handle reacting to a message
 	function reactToMessage(message: ChatMessage, emoji: string) {
 		chatStore.sendMessage(emoji, message.id);
 	}
 
+	// Function to add an emoji to the input message
 	function addEmoji(emoji: string) {
 		inputMessage += emoji;
 		closeEmojiPicker();
 	}
 
+	// Function to close the emoji picker
 	function closeEmojiPicker() {
 		isEmojiPickerOpen = false;
-		emojiSearchQuery = '';
+		emojiSearchQuery = ''; // remettre la recherche d'emoji à une chaîne vide lorsque le picker est fermé
 	}
 
+	// Function to toggle the emoji picker
 	function toggleEmojiPicker() {
 		isEmojiPickerOpen = !isEmojiPickerOpen;
 		emojiSearchQuery = '';
@@ -112,6 +133,13 @@
 		chatStore.disconnect();
 	});
 </script>
+
+
+<!-- cette partie du code est le template HTML du composant Chat.svelte.
+ Il utilise des directives Svelte pour lier les données et gérer les événements. 
+ Le template est structuré en deux parties principales : la section de conversation et la barre latérale des contacts.
+ La section de conversation contient l'en-tête du chat, la liste des messages et le composeur de messages. 
+La barre latérale des contacts affiche les utilisateurs connus et permet de démarrer des conversations directes. */ -->
 
 <div
 	class="chat-container"
@@ -161,89 +189,58 @@
 </div>
 
 <style>
-	.chat-container {
-		position: relative;
-		background: rgb(24 24 27 / 75%);
-		border: 1px solid #27272a;
-		border-radius: 6px;
-		width: 100%;
-		max-width: none;
-		display: flex;
-		flex-direction: row;
-		overflow: hidden;
-		box-shadow:
-			0 8px 24px rgba(0, 0, 0, 0.4),
-			0 0 8px 1px rgb(255 122 26 / 18%),
-			0 0 16px 3px rgb(255 122 26 / 8%);
-		transition: box-shadow 0.25s ease;
-	}
-	/*
-  .chat-container.connected {
-    border-color: #22c55e;
-  }
-*/
-	.conversation {
-		display: flex;
-		flex: 1;
-		flex-direction: column;
-		min-width: 0;
-		height: 100%;
-	}
+    .chat-container {
+        position: relative;
+        width: 100%;
+        max-width: none;
+        display: flex;
+        flex-direction: row;
+        overflow: hidden;
+    }
 
-	.chat-container:hover,
-	.chat-container:focus-within {
-		box-shadow: none;
-	}
+    .conversation {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        height: 100%;
+    }
 
-	.chat-header {
-		background: rgb(32 32 36 / 75%);
-		padding: 1rem;
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		border-bottom: 1px solid #27272a;
-	}
+    .chat-header {
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
 
-	.status-dot {
-		width: 10px;
-		height: 10px;
-		background-color: #71717a;
-		border-radius: 50%;
-		transition: background-color 0.2s;
-	}
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+    }
 
-	.status-dot.connected {
-		background-color: #22c55e;
-		box-shadow: 0 0 8px #22c55e;
-	}
+    .chat-header h3 {
+        margin: 0;
+        font-size: 1rem;
+    }
 
-	.chat-header h3 {
-		margin: 0;
-		color: #ffffff;
-		font-size: 1rem;
-	}
+    .back-button {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        font-size: 1.25rem;
+        cursor: pointer;
+        line-height: 1;
+    }
 
-	.back-button {
-		border: 0;
-		padding: 0;
-		background: transparent;
-		color: #ffad5c;
-		font-size: 1.25rem;
-		cursor: pointer;
-		line-height: 1;
-	}
+    @media (max-width: 520px) {
+        .chat-container {
+            flex-direction: column;
+        }
 
-	.back-button:hover {
-		color: #ffad5c;
-	}
-
-	@media (max-width: 520px) {
-		.chat-container {
-			flex-direction: column;
-		}
-
-		.conversation {
-			min-height: 300px;
-		}
-	}
+        .conversation {
+            min-height: 300px;
+        }
+    }
 </style>

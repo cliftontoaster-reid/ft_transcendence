@@ -42,7 +42,7 @@ function createDMChannelId(userId1: string, userId2: string): string {
   const sorted = [userId1, userId2].sort();
   return `dm:${sorted.join(':')}`;
 }
-
+// The ChatStore class manages the state of the chat application, including messages, channels, and user information.
 export class ChatStore {
   client = new ChatClient();
   messagesByChannel = $state<Record<string, ChatMessage[]>>({});
@@ -353,5 +353,5 @@ export class ChatStore {
     this.isConnected = false;
   }
 }
-
+// Create a singleton instance of ChatStore for use throughout the app
 export const chatStore = new ChatStore();
