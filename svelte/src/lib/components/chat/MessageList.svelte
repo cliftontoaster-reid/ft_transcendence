@@ -61,6 +61,24 @@
 		reactionPickerMessageId = reactionPickerMessageId === messageId ? null : messageId;
 	}
 
+	// État pour savoir quel émoji est actuellement "survolé" ou "cliqué" pour voir les détails (stocke l'ID du message + l'émoji)
+    let activeReactionTooltip = $state<{ messageId: string; emoji: string } | null>(null);
+
+    // Récupère les noms des expéditeurs pour un émoji donné sur un message
+    function getUsersForReaction(messageId: string, emoji: string) {
+        return getReplies(messageId)
+            .filter((reply) => isEmojiReply(reply.text) && reply.text.trim() === emoji)
+            .map((reply) => reply.senderName);
+    }
+
+    function toggleReactionDetails(messageId: string, emoji: string) {
+        if (activeReactionTooltip?.messageId === messageId && activeReactionTooltip?.emoji === emoji) {
+            activeReactionTooltip = null; // Ferme si on clique à nouveau
+        } else {
+            activeReactionTooltip = { messageId, emoji };
+        }
+    }
+
 	$effect(() => {
 		messages;
 		scrollTimeout = setTimeout(scrollToBottom, 0);
@@ -90,18 +108,37 @@
 					onReply={() => onReply(message)}
 					onReact={(emoji: string) => onReact(message, emoji)}
 				/>
-				{#if Object.keys(getGroupedReactions(message.id)).length > 0}
-					<div class="reactions" class:own={message.isOwn} class:other={!message.isOwn}>
-						{#each Object.entries(getGroupedReactions(message.id)) as [emoji, count]}
-							<div class="reply emoji-pill" title={`Réaction de ${count} utilisateur(s)`}>
-								<span>{emoji}</span>
-								{#if count > 1}
-									<span class="reaction-count">{count}</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
+				<!-- Bloc des réactions émojis groupées -->
+                {#if Object.keys(getGroupedReactions(message.id)).length > 0}
+                    <div class="reactions" class:own={message.isOwn} class:other={!message.isOwn}>
+                        {#each Object.entries(getGroupedReactions(message.id)) as [emoji, count] (emoji)}
+                            <div class="reaction-wrapper">
+                                <button
+                                    type="button"
+                                    class="emoji-pill"
+                                    onclick={() => toggleReactionDetails(message.id, emoji)}
+                                >
+                                    <span>{emoji}</span>
+                                    {#if count > 1}
+                                        <span class="reaction-count">{count}</span>
+                                    {/if}
+                                </button>
+
+                                <!-- Infobulle / Popover affichant les noms des utilisateurs -->
+                                {#if activeReactionTooltip?.messageId === message.id && activeReactionTooltip?.emoji === emoji}
+                                    <div class="reaction-popover">
+                                        <span class="popover-title">{emoji} réagi par :</span>
+                                        <ul>
+                                            {#each getUsersForReaction(message.id, emoji) as senderName}
+                                                <li>{senderName}</li>
+                                            {/each}
+                                        </ul>
+                                    </div>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
 				{#if getTextReplies(message.id).length > 0} <!-- vérifie s'il y a des réponses textuelles au message -->
 					<div class="replies" class:own={message.isOwn} class:other={!message.isOwn}>
 						{#each getTextReplies(message.id) as reply (reply.id)}
@@ -193,6 +230,41 @@
         font-size: 0.75rem;
         font-weight: 600;
         color: #e4e4e7;
+    }
+
+
+    /* 1. La boîte entière du popover */
+    .reaction-popover {
+        position: relative;
+        background: #18181b;
+        border: 1px solid #ffad5c;
+        border-radius: 6px;
+        padding: 0.5rem;
+        color: #ffffff;
+        z-index: 50;
+    }
+
+    /* 2. Le titre ("👍 réagi par :") */
+    .popover-title {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #a1a1aa;
+        margin-bottom: 0.35rem;
+        border-bottom: 1px solid #27272a;
+        padding-bottom: 0.25rem;
+    }
+
+    /* 3. La liste des noms d'utilisateurs */
+    .reaction-popover ul {
+        margin: 0;
+        padding: 0;
+        list-style: none; /* Enlève les points devant les noms */
+        font-size: 0.85rem;
+        color: #f4f4f5;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
     }
 
     /* --- Conteneur et style des réponses textuelles --- */
