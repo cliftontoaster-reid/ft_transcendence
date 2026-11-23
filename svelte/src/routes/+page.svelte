@@ -18,14 +18,19 @@
 
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { navigating } from '$app/state';
   import { getContext } from 'svelte';
   import Color from '$lib/components/CarouselPartical.svelte';
   import CarouselRow from '$lib/components/CarouselRow.svelte';
   import Chat from '$lib/components/chat/Chat.svelte';
   import Overview from '$lib/components/Overview.svelte';
+  import RecommendationRow from '$lib/components/RecommendationRow.svelte';
+  import type { PageData } from './$types';
   import { colors } from '$lib/colors';
   import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
   import '$lib/components/chat/css/home.scss';
+
+  let { data }: { data: PageData } = $props();
 
   const carouselCategories = [
     {
@@ -102,6 +107,23 @@
         />
       </aside>
     </div>
+
+    {#if navigating}
+      <p class="feedback" role="status">Loading suggestions...</p>
+    {:else}
+      <RecommendationRow
+        title="For you"
+        items={data.forYou}
+        emptyMessage="Watch a few titles to get suggestions here."
+        errorMessage={data.forYouError ? 'Suggestions are unavailable right now.' : undefined}
+      />
+      <RecommendationRow
+        title="Trending now"
+        items={data.trending}
+        emptyMessage="No titles have been watched in the last 30 days."
+        errorMessage={data.trendingError ? 'Trending is unavailable right now.' : undefined}
+      />
+    {/if}
   {/if}
 
   <section class="browse-section" aria-label="Browse colors">
@@ -126,3 +148,11 @@
     {/if}
   </section>
 </div>
+
+<style>
+  .feedback {
+    margin: 1.5rem 0 0;
+    color: #ffffff;
+    font-size: 0.95rem;
+  }
+</style>

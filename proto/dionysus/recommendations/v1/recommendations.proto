@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package dionysus.recommendations.v1;
+
+import "dionysus/common/v1/asset.proto";
+
+// A single suggested title for a viewer profile. `reason` lets the UI group
+// results into rows (Trending, Because you watched, More like this, Friends).
+message Recommendation {
+  dionysus.common.v1.UUID media_id = 1;
+  string title = 2;
+  float score = 3;
+  // trending | because_you_watched | similar | friends
+  string reason = 4;
+  // Set when the suggestion is anchored to another title, e.g. the seed for
+  // "because you watched" or "more like this".
+  dionysus.common.v1.UUID source_media_id = 5;
+}
+
+message GetTrendingRequest {
+  uint32 limit = 1;
+}
+
+message GetTrendingResponse {
+  repeated Recommendation items = 1;
+}
+
+message GetForYouRequest {
+  dionysus.common.v1.UUID profile_id = 1;
+  uint32 limit = 2;
+}
+
+message GetForYouResponse {
+  repeated Recommendation items = 1;
+}
+
+// Personalised suggestions addressed by user id. The service resolves the
+// user's viewer profile, so callers never need to know profile ids.
+message GetForUserRequest {
+  dionysus.common.v1.UUID user_id = 1;
+  uint32 limit = 2;
+}
+
+message GetForUserResponse {
+  repeated Recommendation items = 1;
+}
+
+message GetSimilarRequest {
+  dionysus.common.v1.UUID media_id = 1;
+  uint32 limit = 2;
+}
+
+message GetSimilarResponse {
+  repeated Recommendation items = 1;
+}
+
+message RecordRatingRequest {
+  dionysus.common.v1.UUID profile_id = 1;
+  dionysus.common.v1.UUID media_id = 2;
+  // 1..5 stars.
+  int32 value = 3;
+}
+
+message RecordRatingResponse {}
+
+message RecordEventRequest {
+  dionysus.common.v1.UUID profile_id = 1;
+  dionysus.common.v1.UUID media_id = 2;
+  // impression | click | play | dismiss
+  string kind = 3;
+}
+
+message RecordEventResponse {}
+
+service RecommendationService {
+  // Non-personalised, recency-weighted popularity.
+  rpc GetTrending(GetTrendingRequest) returns (GetTrendingResponse);
+  // Personalised suggestions for a viewer profile.
+  rpc GetForYou(GetForYouRequest) returns (GetForYouResponse);
+  // Same as GetForYou, but resolves the viewer profile from a user id.
+  rpc GetForUser(GetForUserRequest) returns (GetForUserResponse);
+  // "More like this" for a single title.
+  rpc GetSimilar(GetSimilarRequest) returns (GetSimilarResponse);
+  // Explicit 1..5 feedback, upserted per profile and title.
+  rpc RecordRating(RecordRatingRequest) returns (RecordRatingResponse);
+  // Implicit interaction event used to re-rank future suggestions.
+  rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse);
+}

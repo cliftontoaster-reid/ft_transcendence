@@ -266,6 +266,98 @@ diesel::table! {
   }
 }
 
+diesel::table! {
+  genre (id) {
+    id -> Uuid,
+    #[max_length = 64]
+    name -> Varchar,
+  }
+}
+
+diesel::table! {
+  media_credit (id) {
+    id -> Uuid,
+    media_id -> Uuid,
+    person_id -> Uuid,
+    roles -> Array<Text>,
+    characters -> Array<Text>,
+    billing_order -> Int4,
+  }
+}
+
+diesel::table! {
+  media_genre (media_id, genre_id) {
+    media_id -> Uuid,
+    genre_id -> Uuid,
+  }
+}
+
+diesel::table! {
+  media_rating (profile_id, media_id) {
+    profile_id -> Uuid,
+    media_id -> Uuid,
+    value -> Int2,
+    created_at -> Timestamptz,
+  }
+}
+
+diesel::table! {
+  person (id) {
+    id -> Uuid,
+    #[max_length = 256]
+    display_name -> Varchar,
+    #[max_length = 256]
+    given_name -> Nullable<Varchar>,
+    #[max_length = 256]
+    family_name -> Nullable<Varchar>,
+    #[max_length = 256]
+    birth_place -> Nullable<Varchar>,
+    #[max_length = 4000]
+    biography -> Nullable<Varchar>,
+    birth_date -> Nullable<Date>,
+    death_date -> Nullable<Date>,
+    #[max_length = 2048]
+    profile_picture_url -> Nullable<Varchar>,
+  }
+}
+
+diesel::table! {
+  person_external_ids (id) {
+    id -> Uuid,
+    person_id -> Uuid,
+    #[max_length = 64]
+    provider -> Varchar,
+    #[max_length = 256]
+    value -> Varchar,
+  }
+}
+
+diesel::table! {
+  recommendation (profile_id, media_id, reason) {
+    profile_id -> Uuid,
+    media_id -> Uuid,
+    score -> Float4,
+    #[max_length = 64]
+    reason -> Varchar,
+    source_media_id -> Nullable<Uuid>,
+    #[max_length = 32]
+    algorithm -> Varchar,
+    generated_at -> Timestamptz,
+    expires_at -> Nullable<Timestamptz>,
+  }
+}
+
+diesel::table! {
+  recommendation_event (id) {
+    id -> Uuid,
+    profile_id -> Uuid,
+    media_id -> Uuid,
+    #[max_length = 16]
+    kind -> Varchar,
+    created_at -> Timestamptz,
+  }
+}
+
 diesel::joinable!(media_external_ids -> media (media_id));
 diesel::joinable!(my_list -> media (media_id));
 diesel::joinable!(my_list -> viewer_profiles (profile_id));
@@ -284,6 +376,16 @@ diesel::joinable!(watch_history -> media (media_id));
 diesel::joinable!(watch_history -> viewer_profiles (profile_id));
 diesel::joinable!(watch_progress -> media (media_id));
 diesel::joinable!(watch_progress -> viewer_profiles (profile_id));
+diesel::joinable!(media_credit -> media (media_id));
+diesel::joinable!(media_credit -> person (person_id));
+diesel::joinable!(media_genre -> genre (genre_id));
+diesel::joinable!(media_genre -> media (media_id));
+diesel::joinable!(media_rating -> media (media_id));
+diesel::joinable!(media_rating -> viewer_profiles (profile_id));
+diesel::joinable!(person_external_ids -> person (person_id));
+diesel::joinable!(recommendation -> viewer_profiles (profile_id));
+diesel::joinable!(recommendation_event -> media (media_id));
+diesel::joinable!(recommendation_event -> viewer_profiles (profile_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
   media,
@@ -304,4 +406,12 @@ diesel::allow_tables_to_appear_in_same_query!(
   viewer_profiles,
   watch_history,
   watch_progress,
+  genre,
+  media_credit,
+  media_genre,
+  media_rating,
+  person,
+  person_external_ids,
+  recommendation,
+  recommendation_event,
 );

@@ -101,7 +101,13 @@ impl TmdbProvider {
       None
     };
     params.extend_from_slice(query);
-    get_json(&self.client, format!("{}{path}", self.base_url), &params, bearer).await
+    get_json(
+      &self.client,
+      format!("{}{path}", self.base_url),
+      &params,
+      bearer,
+    )
+    .await
   }
 
   async fn fetch_movie(&self, id: &str) -> Result<MediaMetadata, ProviderError> {
@@ -109,7 +115,10 @@ impl TmdbProvider {
       .json(
         &format!("/movie/{id}"),
         &[
-          ("append_to_response", "credits,translations,images".to_string()),
+          (
+            "append_to_response",
+            "credits,translations,images".to_string(),
+          ),
           ("include_image_language", "en,null".to_string()),
         ],
       )
@@ -142,6 +151,7 @@ impl TmdbProvider {
       images: collect_images(&movie.images),
       credits: collect_credits(&movie.credits),
       external_ids,
+      genres: genres(&movie.genres),
     })
   }
 
@@ -197,6 +207,7 @@ impl TmdbProvider {
       images: collect_images(&show.images),
       credits: collect_credits(&show.credits),
       external_ids,
+      genres: genres(&show.genres),
     })
   }
 }
@@ -223,7 +234,8 @@ impl MetadataProvider for TmdbProvider {
           params.push(("year", y.clone()));
         }
         let page: SearchMoviePage = self.json("/search/movie", &params).await?;
-        page.results
+        page
+          .results
           .into_iter()
           .filter_map(|r| {
             let title = r.title?;
@@ -245,7 +257,8 @@ impl MetadataProvider for TmdbProvider {
           params.push(("first_air_date_year", y.clone()));
         }
         let page: SearchTvPage = self.json("/search/tv", &params).await?;
-        page.results
+        page
+          .results
           .into_iter()
           .filter_map(|r| {
             let title = r.name?;
@@ -331,6 +344,8 @@ struct MovieDetails {
   overview: Option<String>,
   release_date: Option<String>,
   runtime: Option<i64>,
+  #[serde(default)]
+  genres: Vec<Genre>,
   original_language: Option<String>,
   imdb_id: Option<String>,
   #[serde(default)]
@@ -346,6 +361,8 @@ struct TvDetails {
   name: Option<String>,
   overview: Option<String>,
   first_air_date: Option<String>,
+  #[serde(default)]
+  genres: Vec<Genre>,
   original_language: Option<String>,
   episode_run_time: Option<Vec<i64>>,
   external_ids: Option<ExternalIds>,
@@ -355,6 +372,20 @@ struct TvDetails {
   translations: Translations,
   #[serde(default)]
   images: Images,
+}
+
+#[derive(Deserialize)]
+struct Genre {
+  name: Option<String>,
+}
+
+fn genres(entries: &[Genre]) -> Vec<String> {
+  entries
+    .iter()
+    .filter_map(|entry| entry.name.as_deref())
+    .filter(|name| !name.trim().is_empty())
+    .map(str::to_string)
+    .collect()
 }
 
 #[derive(Deserialize)]
@@ -470,24 +501,30 @@ fn translation_texts(
 
 fn collect_images(images: &Images) -> Vec<RemoteImage> {
   let mut out = Vec::new();
-  push_images(&mut out, &images.posters, MediaImageKind::Poster, MAX_POSTERS);
-  push_images(&mut out, &images.backdrops, MediaImageKind::Backdrop, MAX_BACKDROPS);
+  push_images(
+    &mut out,
+    &images.posters,
+    MediaImageKind::Poster,
+    MAX_POSTERS,
+  );
+  push_images(
+    &mut out,
+    &images.backdrops,
+    MediaImageKind::Backdrop,
+    MAX_BACKDROPS,
+  );
   out
 }
 
-fn push_images(
-  out: &mut Vec<RemoteImage>,
-  images: &[TmdbImage],
-  kind: MediaImageKind,
-  cap: usize,
-) {
+fn push_images(out: &mut Vec<RemoteImage>, images: &[TmdbImage], kind: MediaImageKind, cap: usize) {
   let mut usable: Vec<&TmdbImage> = images
     .iter()
     .filter(|i| i.file_path.as_deref().is_some_and(|p| p.starts_with('/')))
     .collect();
   // Best-voted first, so the cap drops the long tail.
   usable.sort_by(|a, b| {
-    b.vote_average.unwrap_or(0.0)
+    b.vote_average
+      .unwrap_or(0.0)
       .total_cmp(&a.vote_average.unwrap_or(0.0))
   });
   for image in usable.into_iter().take(cap) {
@@ -634,7 +671,7 @@ mod tests {
         {"id":604,"title":"The Matrix Reloaded","release_date":"2003-05-15"},
         {"id":603,"title":"The Matrix","release_date":"1999-03-30"}
       ]}"#
-      .to_string(),
+        .to_string(),
     )
     .await;
     let tmdb = TmdbProvider::new("test-key").with_base_url(server.base_url());
@@ -675,7 +712,11 @@ mod tests {
     let results = tmdb.search(&query).await.expect("search");
     assert_eq!(results[0].id, "tv:1396");
     assert_eq!(results[0].kind, MediaKind::Episode);
-    assert!(server.request(0).starts_with("GET /search/tv?"), "{}", server.request(0));
+    assert!(
+      server.request(0).starts_with("GET /search/tv?"),
+      "{}",
+      server.request(0)
+    );
     assert!(server.request(0).contains("first_air_date_year=2008"));
   }
 
@@ -727,15 +768,32 @@ mod tests {
     assert_eq!(meta.runtime_secs, Some(136 * 60));
 
     // External ids: tmdb always, imdb when the record carries one.
-    assert!(meta.external_ids.iter().any(|e| e.provider == "tmdb" && e.value == "603"));
-    assert!(meta.external_ids.iter().any(|e| e.provider == "imdb" && e.value == "tt0133093"));
+    assert!(
+      meta
+        .external_ids
+        .iter()
+        .any(|e| e.provider == "tmdb" && e.value == "603")
+    );
+    assert!(
+      meta
+        .external_ids
+        .iter()
+        .any(|e| e.provider == "imdb" && e.value == "tt0133093")
+    );
 
     // The empty German entry is dropped; en/fr survive with synopsis only.
-    let locales: Vec<&str> = meta.localized_texts.iter().map(|t| t.locale.as_str()).collect();
+    let locales: Vec<&str> = meta
+      .localized_texts
+      .iter()
+      .map(|t| t.locale.as_str())
+      .collect();
     assert_eq!(locales, ["en", "fr"]);
     assert_eq!(meta.localized_texts[0].title, "The Matrix");
     assert!(meta.localized_texts[0].synopsis.contains("hacker"));
-    assert!(meta.localized_texts[0].summary.is_empty(), "OMDb owns the summary field");
+    assert!(
+      meta.localized_texts[0].summary.is_empty(),
+      "OMDb owns the summary field"
+    );
 
     // Posters sorted by votes (popular first), null path dropped, URL built
     // against the CDN host.
@@ -761,14 +819,26 @@ mod tests {
       .iter()
       .find(|c| c.name == "Lana Wachowski")
       .expect("lana");
-    assert_eq!(lana.roles, [CreditRole::Director, CreditRole::ScreenplayWriter]);
+    assert_eq!(
+      lana.roles,
+      [CreditRole::Director, CreditRole::ScreenplayWriter]
+    );
     assert!(lana.person_external_ids.iter().any(|e| e.value == "9339"));
-    let keanu = meta.credits.iter().find(|c| c.name == "Keanu Reeves").expect("keanu");
+    let keanu = meta
+      .credits
+      .iter()
+      .find(|c| c.name == "Keanu Reeves")
+      .expect("keanu");
     assert_eq!(keanu.roles, [CreditRole::Actor]);
     assert_eq!(keanu.characters, ["Neo"]);
     assert_eq!(keanu.billing, 0);
     assert!(meta.credits.iter().any(|c| c.name == "Don Davis"));
-    assert!(!meta.credits.iter().any(|c| c.name == "Lana Wachowski" && c.roles.len() == 1));
+    assert!(
+      !meta
+        .credits
+        .iter()
+        .any(|c| c.name == "Lana Wachowski" && c.roles.len() == 1)
+    );
     assert!(!meta.credits.iter().any(|c| c.name.is_empty()));
   }
 
@@ -787,7 +857,7 @@ mod tests {
         "translations": {"translations": []},
         "images": {"posters": [], "backdrops": []}
       }"#
-      .to_string(),
+        .to_string(),
     )
     .await;
     let tmdb = TmdbProvider::new("test-key").with_base_url(server.base_url());
@@ -796,8 +866,18 @@ mod tests {
     assert_eq!(meta.kind, MediaKind::Episode);
     assert_eq!(meta.release_year, Some(2008));
     assert_eq!(meta.runtime_secs, Some(47 * 60));
-    assert!(meta.external_ids.iter().any(|e| e.provider == "tmdb" && e.value == "1396"));
-    assert!(meta.external_ids.iter().any(|e| e.provider == "imdb" && e.value == "tt0903747"));
+    assert!(
+      meta
+        .external_ids
+        .iter()
+        .any(|e| e.provider == "tmdb" && e.value == "1396")
+    );
+    assert!(
+      meta
+        .external_ids
+        .iter()
+        .any(|e| e.provider == "imdb" && e.value == "tt0903747")
+    );
     // No translations array → fallback to the detail response itself.
     assert_eq!(meta.localized_texts.len(), 1);
     assert_eq!(meta.localized_texts[0].locale, "en");
@@ -833,14 +913,18 @@ mod tests {
       .expect("find")
       .expect("result");
     assert_eq!(episode, "tv:1396");
-    assert!(server.request(0).starts_with("GET /find/tt0133093?"), "{}", server.request(0));
+    assert!(
+      server.request(0).starts_with("GET /find/tt0133093?"),
+      "{}",
+      server.request(0)
+    );
     assert!(server.request(0).contains("external_source=imdb_id"));
   }
 
   #[tokio::test]
   async fn find_by_imdb_falls_back_to_the_other_list() {
-    let server = MockServer::serve_json(r#"{"movie_results":[],"tv_results":[{"id":42}]}"#.to_string())
-      .await;
+    let server =
+      MockServer::serve_json(r#"{"movie_results":[],"tv_results":[{"id":42}]}"#.to_string()).await;
     let tmdb = TmdbProvider::new("test-key").with_base_url(server.base_url());
     // Misparsed as a movie, but the id only exists as a TV show.
     let found = tmdb
@@ -859,7 +943,10 @@ mod tests {
     tmdb.search(&matrix_query()).await.expect("search");
     let request = server.request(0);
     assert!(request.starts_with("GET /search/movie?"), "{request}");
-    assert!(!request.contains("api_key="), "v4 tokens are not query params: {request}");
+    assert!(
+      !request.contains("api_key="),
+      "v4 tokens are not query params: {request}"
+    );
     assert!(
       request.to_lowercase().contains("authorization: bearer"),
       "{request}"
@@ -881,6 +968,9 @@ mod tests {
     let failing = MockServer::serve_status(500, "boom").await;
     let tmdb = TmdbProvider::new("k").with_base_url(failing.base_url());
     let err = tmdb.fetch("movie:1").await.expect_err("500");
-    assert!(matches!(err, ProviderError::Http { status: 500, .. }), "{err}");
+    assert!(
+      matches!(err, ProviderError::Http { status: 500, .. }),
+      "{err}"
+    );
   }
 }

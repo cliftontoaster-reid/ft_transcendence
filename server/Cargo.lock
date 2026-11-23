@@ -525,7 +525,7 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.10"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50066ca966813ca8957ee15361752f19424a8ff620dbe9c8993d9f99d99b04b3"
 dependencies = [
@@ -1376,6 +1376,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dionysus_embeddings"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "dionysus_ffmpeg"
 version = "0.1.0"
 dependencies = [
@@ -1578,6 +1591,68 @@ dependencies = [
  "tonic-prost",
  "tonic-prost-build",
  "tracing",
+]
+
+[[package]]
+name = "dionysus_recommendations"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "dionysus_db",
+ "dionysus_proto",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "dionysus_recommender"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "diesel",
+ "dionysus_db",
+ "dionysus_embeddings",
+ "pgvector",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "dionysus_recommendations"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "dionysus_db",
+ "dionysus_proto",
+ "tokio",
+ "tonic",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "dionysus_recommender"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "diesel",
+ "dionysus_db",
+ "dionysus_embeddings",
+ "pgvector",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

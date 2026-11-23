@@ -7,8 +7,8 @@
 //! plugins built against an older contract. Errors are plain strings on the
 //! WIT boundary, so codec errors surface as `String` as well.
 
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use crate::{Descriptor, MediaMetadata, MediaQuery, SearchResult};
 
@@ -116,7 +116,10 @@ mod tests {
     let wire = encode_results(&results).expect("encode");
     assert_eq!(wire.len(), 2);
     for blob in &wire {
-      assert!(matches!(blob[0], 0x80..=0x8f | 0xde), "each hit must be a named map");
+      assert!(
+        matches!(blob[0], 0x80..=0x8f | 0xde),
+        "each hit must be a named map"
+      );
     }
     assert_eq!(decode_results(&wire).expect("decode"), results);
   }
@@ -125,7 +128,11 @@ mod tests {
   fn id_is_msgpack_string_not_raw_utf8() {
     let bytes = encode_id("tt0133093").expect("encode");
     // A msgpack string head (0xa0..=0xbf short / 0xd9..=0xdb long), never raw bytes.
-    assert!(matches!(bytes[0], 0xa0..=0xbf | 0xd9..=0xdb), "got {:#x}", bytes[0]);
+    assert!(
+      matches!(bytes[0], 0xa0..=0xbf | 0xd9..=0xdb),
+      "got {:#x}",
+      bytes[0]
+    );
     assert_eq!(decode_id(&bytes).expect("decode"), "tt0133093");
   }
 
@@ -147,13 +154,20 @@ mod tests {
         locale: None,
       }],
       credits: vec![Credit {
-        person_external_ids: vec![ExternalId { provider: "fixture".to_string(), value: "7".to_string() }],
+        person_external_ids: vec![ExternalId {
+          provider: "fixture".to_string(),
+          value: "7".to_string(),
+        }],
         name: "Ada Example".to_string(),
         roles: vec![CreditRole::Actor],
         characters: vec!["Self".to_string()],
         billing: 0,
       }],
-      external_ids: vec![ExternalId { provider: "imdb".to_string(), value: "tt0000001".to_string() }],
+      external_ids: vec![ExternalId {
+        provider: "imdb".to_string(),
+        value: "tt0000001".to_string(),
+      }],
+      genres: vec!["Drama".to_string()],
     };
     let bytes = encode_metadata(&metadata).expect("encode");
     assert_eq!(decode_metadata(&bytes).expect("decode"), metadata);

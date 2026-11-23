@@ -170,6 +170,19 @@ impl MetadataProvider for OmdbProvider {
       images,
       credits: Vec::new(),
       external_ids,
+      genres: title
+        .genre
+        .as_deref()
+        .filter(|value| is_set(value))
+        .map(|value| {
+          value
+            .split(',')
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .map(str::to_string)
+            .collect()
+        })
+        .unwrap_or_default(),
     })
   }
 }
@@ -210,6 +223,8 @@ struct TitleResult {
   runtime: Option<String>,
   #[serde(rename = "Plot")]
   plot: Option<String>,
+  #[serde(rename = "Genre")]
+  genre: Option<String>,
   #[serde(rename = "Poster")]
   poster: Option<String>,
   #[serde(rename = "Type")]
@@ -264,7 +279,7 @@ mod tests {
         "totalResults": "2",
         "Response": "True"
       }"#
-      .to_string(),
+        .to_string(),
     )
     .await;
     let omdb = OmdbProvider::new("test-key").with_base_url(server.base_url());
@@ -277,15 +292,20 @@ mod tests {
 
     let request = server.request(0);
     assert!(request.contains("apikey=test-key"), "{request}");
-    assert!(request.contains("s=The+Matrix") || request.contains("s=The%20Matrix"), "{request}");
+    assert!(
+      request.contains("s=The+Matrix") || request.contains("s=The%20Matrix"),
+      "{request}"
+    );
     assert!(request.contains("type=movie"), "{request}");
     assert!(request.contains("y=1999"), "{request}");
   }
 
   #[tokio::test]
   async fn search_for_series_filters_on_type_series() {
-    let server = MockServer::serve_json(r#"{"Search":[],"Response":"False","Error":"Movie not found!"}"#.to_string())
-      .await;
+    let server = MockServer::serve_json(
+      r#"{"Search":[],"Response":"False","Error":"Movie not found!"}"#.to_string(),
+    )
+    .await;
     let omdb = OmdbProvider::new("k").with_base_url(server.base_url());
     let query = MediaQuery {
       title: "Breaking Bad".to_string(),
@@ -295,7 +315,11 @@ mod tests {
     // "not found" is an empty result set, never an error.
     let results = omdb.search(&query).await.expect("search");
     assert!(results.is_empty());
-    assert!(server.request(0).contains("type=series"), "{}", server.request(0));
+    assert!(
+      server.request(0).contains("type=series"),
+      "{}",
+      server.request(0)
+    );
   }
 
   #[tokio::test]
@@ -311,7 +335,7 @@ mod tests {
         "imdbID": "tt0133093",
         "Response": "True"
       }"#
-      .to_string(),
+        .to_string(),
     )
     .await;
     let omdb = OmdbProvider::new("k").with_base_url(server.base_url());
@@ -320,7 +344,13 @@ mod tests {
     assert_eq!(meta.kind, MediaKind::Movie);
     assert_eq!(meta.release_year, Some(1999));
     assert_eq!(meta.runtime_secs, Some(136 * 60));
-    assert_eq!(meta.external_ids, [ExternalId { provider: "imdb".into(), value: "tt0133093".into() }]);
+    assert_eq!(
+      meta.external_ids,
+      [ExternalId {
+        provider: "imdb".into(),
+        value: "tt0133093".into()
+      }]
+    );
 
     let text = &meta.localized_texts[0];
     assert_eq!(text.locale, "en");
@@ -330,7 +360,11 @@ mod tests {
     assert_eq!(text.summary, text.synopsis);
 
     assert_eq!(meta.images.len(), 1);
-    assert!(meta.images[0].url.starts_with("https://m.media-amazon.com/"));
+    assert!(
+      meta.images[0]
+        .url
+        .starts_with("https://m.media-amazon.com/")
+    );
     assert_eq!(meta.images[0].kind, MediaImageKind::Poster);
   }
 
@@ -341,7 +375,7 @@ mod tests {
         "Title": "Obscure Film", "Year": "N/A", "Runtime": "N/A", "Plot": "P.",
         "Poster": "N/A", "Type": "movie", "imdbID": "tt0000000", "Response": "True"
       }"#
-      .to_string(),
+        .to_string(),
     )
     .await;
     let omdb = OmdbProvider::new("k").with_base_url(server.base_url());
@@ -359,20 +393,25 @@ mod tests {
         "Plot": "A teacher cooks.", "Poster": "N/A", "Type": "series",
         "imdbID": "tt0903747", "Response": "True"
       }"#
-      .to_string(),
+        .to_string(),
     )
     .await;
     let omdb = OmdbProvider::new("k").with_base_url(server.base_url());
     let meta = omdb.fetch("tt0903747").await.expect("fetch");
     assert_eq!(meta.kind, MediaKind::Episode);
-    assert_eq!(meta.release_year, Some(2008), "series span keeps its first year");
+    assert_eq!(
+      meta.release_year,
+      Some(2008),
+      "series span keeps its first year"
+    );
     assert_eq!(meta.runtime_secs, Some(45 * 60));
   }
 
   #[tokio::test]
   async fn error_response_is_not_found() {
-    let server = MockServer::serve_json(r#"{"Response":"False","Error":"Movie not found!"}"#.to_string())
-      .await;
+    let server =
+      MockServer::serve_json(r#"{"Response":"False","Error":"Movie not found!"}"#.to_string())
+        .await;
     let omdb = OmdbProvider::new("k").with_base_url(server.base_url());
     let err = omdb.fetch("tt9999999").await.expect_err("must be NotFound");
     assert!(matches!(err, ProviderError::NotFound(_)), "{err}");

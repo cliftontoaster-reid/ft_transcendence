@@ -264,3 +264,111 @@ Table room_participents {
   user_id uuid [not null, ref: > users.id]
   role room_participent_role
 }
+
+// --- Recommendations ---
+
+// Cached, per-profile suggestions produced by the recommender worker and
+// served read-only by the recommendation API.
+Table recommendation {
+  profile_id uuid [not null, ref: > viewer_profiles.id]
+  media_id uuid [not null, ref: > media.id]
+  score real [not null]
+  // trending | because_you_watched | similar | friends
+  reason varchar(64) [not null]
+  // Seed title for "because you watched" / "similar".
+  source_media_id uuid [ref: > media.id]
+  algorithm varchar(32) [not null]
+  generated_at timestamptz [not null, default: `now()`]
+  expires_at timestamptz
+
+  Indexes {
+    (profile_id, media_id, reason) [pk]
+    (profile_id, score) [name: 'recommendation_profile_score_idx']
+  }
+}
+
+// Explicit feedback; 1..5 stars.
+Table media_rating {
+  profile_id uuid [not null, ref: > viewer_profiles.id]
+  media_id uuid [not null, ref: > media.id]
+  value smallint [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (profile_id, media_id) [pk]
+  }
+
+  Note: 'CHECK (value BETWEEN 1 AND 5)'
+}
+
+// Implicit interaction events that feed re-ranking.
+Table recommendation_event {
+  id uuid [pk, default: `gen_random_uuid()`]
+  profile_id uuid [not null, ref: > viewer_profiles.id]
+  media_id uuid [not null, ref: > media.id]
+  // impression | click | play | dismiss
+  kind varchar(16) [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (profile_id, created_at) [name: 'recommendation_event_profile_created_at_idx']
+  }
+}
+
+// Genres improve cold-start and let ranking filter/boost by genre.
+Table genre {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(64) [not null, unique]
+}
+
+Table media_genre {
+  media_id uuid [not null, ref: > media.id]
+  genre_id uuid [not null, ref: > genre.id]
+
+  Indexes {
+    (media_id, genre_id) [pk]
+    genre_id [name: 'media_genre_genre_id_idx']
+  }
+}
+
+// People and their involvement in media, mirroring person.proto / credit.proto.
+Table person {
+  id uuid [pk, default: `gen_random_uuid()`]
+  display_name varchar(256) [not null]
+  given_name varchar(256)
+  family_name varchar(256)
+  birth_place varchar(256)
+  biography varchar(4000)
+  birth_date date
+  death_date date
+  profile_picture_url varchar(2048)
+}
+
+Table person_external_ids {
+  id uuid [pk, default: `gen_random_uuid()`]
+  person_id uuid [not null, ref: > person.id]
+  // e.g. "imdb", "tmdb".
+  provider varchar(64) [not null]
+  value varchar(256) [not null]
+
+  Indexes {
+    (provider, value) [unique]
+    person_id [name: 'person_external_ids_person_id_idx']
+  }
+}
+
+Table media_credit {
+  id uuid [pk, default: `gen_random_uuid()`]
+  media_id uuid [not null, ref: > media.id]
+  person_id uuid [not null, ref: > person.id]
+  // CreditRole values from dionysus_metadata_model, e.g. {"ACTOR","DIRECTOR"}.
+  roles text[] [not null, default: `'{}'`]
+  characters text[] [not null, default: `'{}'`]
+  // Lower = billed first; 0 when unknown.
+  billing_order int [not null, default: 0]
+
+  Indexes {
+    media_id [name: 'media_credit_media_id_idx']
+    person_id [name: 'media_credit_person_id_idx']
+  }
+}
