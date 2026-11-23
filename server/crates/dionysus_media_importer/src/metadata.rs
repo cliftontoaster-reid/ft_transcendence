@@ -13,11 +13,14 @@ use std::path::PathBuf;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-use dionysus_db::models::{NewMediaExternalId, NewMediaTranslation, NewMetadataSource};
+use dionysus_db::models::{
+  NewGenre, NewMediaCredit, NewMediaExternalId, NewMediaGenre, NewMediaTranslation,
+  NewMetadataSource, NewPerson, NewPersonExternalId, Person,
+};
 use dionysus_db::schema;
 use dionysus_metadata::{
-  model::{Descriptor, MediaKind, MediaMetadata, MediaQuery},
   ImageFetcher,
+  model::{Descriptor, MediaKind, MediaMetadata, MediaQuery},
 };
 use dionysus_metadata_providers::MetadataFetcher;
 
@@ -32,6 +35,9 @@ const MAX_SUMMARY: usize = 4000;
 const MAX_SOURCE_ID: usize = 64;
 const MAX_SOURCE_NAME: usize = 255;
 const MAX_VERSION: usize = 64;
+const MAX_GENRE: usize = 64;
+const MAX_PERSON: usize = 256;
+const MAX_CHARACTER: usize = 256;
 
 pub struct MetadataStep {
   fetcher: MetadataFetcher,
@@ -77,12 +83,14 @@ impl MetadataStep {
     let query = media_query(parsed);
     let (mut warnings, merged, sources) = self.fetcher.fetch(&query).await?;
     warnings.extend(
-      write_metadata_rows(conn, media_id, &merged, &sources)
-        .map_err(|e| format!("db: {e}"))?,
+      write_metadata_rows(conn, media_id, &merged, &sources).map_err(|e| format!("db: {e}"))?,
     );
 
     if !merged.images.is_empty() {
-      let (_, errors) = self.images.fetch_and_store(conn, media_id, &merged.images).await;
+      let (_, errors) = self
+        .images
+        .fetch_and_store(conn, media_id, &merged.images)
+        .await;
       warnings.extend(errors.into_iter().map(|e| format!("image: {e}")));
     }
     Ok(warnings)
@@ -177,7 +185,11 @@ pub(crate) fn write_metadata_rows(
       if text.title.is_empty() && text.synopsis.is_empty() && text.summary.is_empty() {
         continue;
       }
-      let locale = if text.locale.trim().is_empty() { "und" } else { text.locale.as_str() };
+      let locale = if text.locale.trim().is_empty() {
+        "und"
+      } else {
+        text.locale.as_str()
+      };
       diesel::insert_into(schema::media_translations::table)
         .values(NewMediaTranslation {
           media_id,
@@ -186,6 +198,105 @@ pub(crate) fn write_metadata_rows(
           synopsis: clamp(&text.synopsis, MAX_SYNOPSIS),
           summary: clamp(&text.summary, MAX_SUMMARY),
           embedding: None,
+        })
+        .execute(conn)?;
+    }
+
+    // Genre names are global; the join row is what ties them to this title.
+    // Conflicts are expected when several imports carry the same genre.
+    for genre in &metadata.genres {
+      let name = clamp(genre, MAX_GENRE);
+      if name.trim().is_empty() {
+        continue;
+      }
+      diesel::insert_into(schema::genre::table)
+        .values(NewGenre { name })
+        .on_conflict(schema::genre::name)
+        .do_nothing()
+        .execute(conn)?;
+      let genre_id = schema::genre::table
+        .filter(schema::genre::name.eq(name))
+        .select(schema::genre::id)
+        .first(conn)?;
+      diesel::insert_into(schema::media_genre::table)
+        .values(NewMediaGenre { media_id, genre_id })
+        .on_conflict((schema::media_genre::media_id, schema::media_genre::genre_id))
+        .do_nothing()
+        .execute(conn)?;
+    }
+
+    // A person is identified by any of the external ids the providers report.
+    // Reuse an existing row when one matches so the same actor isn't split
+    // across titles; otherwise create it and register all of its ids.
+    for credit in &metadata.credits {
+      if credit.name.trim().is_empty() {
+        continue;
+      }
+      let mut person_id = None;
+      for id in &credit.person_external_ids {
+        if id.value.trim().is_empty() {
+          continue;
+        }
+        person_id = schema::person_external_ids::table
+          .filter(schema::person_external_ids::provider.eq(&id.provider))
+          .filter(schema::person_external_ids::value.eq(&id.value))
+          .select(schema::person_external_ids::person_id)
+          .first(conn)
+          .optional()?;
+        if person_id.is_some() {
+          break;
+        }
+      }
+      let person_id = match person_id {
+        Some(id) => id,
+        None => {
+          let person: Person = diesel::insert_into(schema::person::table)
+            .values(NewPerson {
+              display_name: clamp(&credit.name, MAX_PERSON),
+              given_name: None,
+              family_name: None,
+              birth_place: None,
+              biography: None,
+              birth_date: None,
+              death_date: None,
+              profile_picture_url: None,
+            })
+            .get_result(conn)?;
+          for id in &credit.person_external_ids {
+            if id.value.trim().is_empty() {
+              continue;
+            }
+            diesel::insert_into(schema::person_external_ids::table)
+              .values(NewPersonExternalId {
+                person_id: person.id,
+                provider: clamp(&id.provider, MAX_SOURCE_ID),
+                value: clamp(&id.value, MAX_PERSON),
+              })
+              .on_conflict((
+                schema::person_external_ids::provider,
+                schema::person_external_ids::value,
+              ))
+              .do_nothing()
+              .execute(conn)?;
+          }
+          person.id
+        }
+      };
+      diesel::insert_into(schema::media_credit::table)
+        .values(NewMediaCredit {
+          media_id,
+          person_id,
+          roles: credit
+            .roles
+            .iter()
+            .map(|role| role.as_str().to_string())
+            .collect(),
+          characters: credit
+            .characters
+            .iter()
+            .map(|character| clamp(character, MAX_CHARACTER).to_string())
+            .collect(),
+          billing_order: credit.billing,
         })
         .execute(conn)?;
     }
@@ -303,9 +414,16 @@ mod tests {
         billing: 0,
       }],
       external_ids: vec![
-        ExternalId { provider: "tmdb".to_string(), value: "603".to_string() },
-        ExternalId { provider: "imdb".to_string(), value: "tt0133093".to_string() },
+        ExternalId {
+          provider: "tmdb".to_string(),
+          value: "603".to_string(),
+        },
+        ExternalId {
+          provider: "imdb".to_string(),
+          value: "tt0133093".to_string(),
+        },
       ],
+      genres: vec!["Action".to_string(), "Science Fiction".to_string()],
     };
 
     let sources = vec![
@@ -315,7 +433,10 @@ mod tests {
     let warnings = write_metadata_rows(&mut conn, media_id, &metadata, &sources).expect("rows");
     assert!(warnings.is_empty(), "{warnings:?}");
 
-    let stored: Media = schema::media::table.find(media_id).first(&mut conn).expect("media");
+    let stored: Media = schema::media::table
+      .find(media_id)
+      .first(&mut conn)
+      .expect("media");
     assert_eq!(stored.release_year, Some(1999), "provider year wins");
 
     let translations = dionysus_db::models::MediaTranslation::belonging_to(&stored)
@@ -331,13 +452,34 @@ mod tests {
       .expect("external ids");
     assert_eq!(ids.len(), 2);
 
+    let genres: Vec<String> = schema::media_genre::table
+      .filter(schema::media_genre::media_id.eq(media_id))
+      .inner_join(schema::genre::table)
+      .select(schema::genre::name)
+      .load(&mut conn)
+      .expect("genres");
+    assert_eq!(genres.len(), 2);
+    assert!(genres.contains(&"Action".to_string()));
+    assert!(genres.contains(&"Science Fiction".to_string()));
+
+    let credits: Vec<dionysus_db::models::MediaCredit> = schema::media_credit::table
+      .filter(schema::media_credit::media_id.eq(media_id))
+      .load(&mut conn)
+      .expect("credits");
+    assert_eq!(credits.len(), 1);
+    assert_eq!(credits[0].roles, ["ACTOR"]);
+    assert_eq!(credits[0].characters, ["Neo"]);
+
     // Both answering sources landed in the registry with their descriptors.
     let stored_sources: Vec<dionysus_db::models::MetadataSource> = schema::metadata_source::table
       .filter(schema::metadata_source::id.eq_any(["tmdb", "omdb"]))
       .load(&mut conn)
       .expect("sources");
     assert_eq!(stored_sources.len(), 2);
-    let omdb = stored_sources.iter().find(|s| s.id == "omdb").expect("omdb row");
+    let omdb = stored_sources
+      .iter()
+      .find(|s| s.id == "omdb")
+      .expect("omdb row");
     assert_eq!(omdb.name, "OMDb");
     assert_eq!(omdb.version, "0.1.0");
     assert_eq!(omdb.model_version, dionysus_metadata::model::MODEL_VERSION);

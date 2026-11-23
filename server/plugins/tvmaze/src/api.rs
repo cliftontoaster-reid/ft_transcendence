@@ -22,6 +22,8 @@ pub struct Show {
   pub average_runtime: Option<u32>,
   pub summary: Option<String>,
   #[serde(default)]
+  pub genres: Vec<String>,
+  #[serde(default)]
   pub externals: Externals,
   #[serde(rename = "_embedded", default)]
   pub embedded: Option<Embedded>,
@@ -94,9 +96,15 @@ pub fn to_metadata(show: &Show) -> sdk::MediaMetadata {
     if let Some(value) = text_value(value) {
       // TVMaze disambiguates TMDB movies from shows with a `tv:` prefix;
       // the model stores the bare id under the provider name.
-      let value =
-        if provider == "tmdb" { value.strip_prefix("tv:").unwrap_or(&value).to_string() } else { value };
-      external_ids.push(sdk::ExternalId { provider: provider.to_string(), value });
+      let value = if provider == "tmdb" {
+        value.strip_prefix("tv:").unwrap_or(&value).to_string()
+      } else {
+        value
+      };
+      external_ids.push(sdk::ExternalId {
+        provider: provider.to_string(),
+        value,
+      });
     }
   }
 
@@ -128,7 +136,10 @@ pub fn to_metadata(show: &Show) -> sdk::MediaMetadata {
 
   sdk::MediaMetadata {
     release_year: release_year(show),
-    runtime_secs: show.average_runtime.or(show.runtime).map(|minutes| (minutes * 60) as i32),
+    runtime_secs: show
+      .average_runtime
+      .or(show.runtime)
+      .map(|minutes| (minutes * 60) as i32),
     kind: sdk::MediaKind::Episode,
     localized_texts: vec![sdk::LocalizedText {
       locale: "en".to_string(),
@@ -138,6 +149,7 @@ pub fn to_metadata(show: &Show) -> sdk::MediaMetadata {
     }],
     credits,
     external_ids,
+    genres: show.genres.clone(),
     ..Default::default()
   }
 }
@@ -149,7 +161,10 @@ pub fn release_year(show: &Show) -> Option<i16> {
 
 fn text_value(value: &Option<Value>) -> Option<String> {
   let value = value.as_ref()?;
-  value.as_str().map(str::to_string).or_else(|| value.as_i64().map(|n| n.to_string()))
+  value
+    .as_str()
+    .map(str::to_string)
+    .or_else(|| value.as_i64().map(|n| n.to_string()))
 }
 
 pub fn search_url(title: &str) -> String {
@@ -168,9 +183,7 @@ pub fn encode_component(input: &str) -> String {
   let mut out = String::with_capacity(input.len());
   for byte in input.bytes() {
     match byte {
-      b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-        out.push(byte as char)
-      }
+      b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(byte as char),
       b' ' => out.push('+'),
       _ => out.push_str(&format!("%{byte:02X}")),
     }
@@ -274,8 +287,11 @@ mod tests {
     assert!(!en.synopsis.contains("<p>"), "{}", en.synopsis);
     assert!(!en.synopsis.contains("</"), "{}", en.synopsis);
 
-    let providers: Vec<&str> =
-      metadata.external_ids.iter().map(|id| id.provider.as_str()).collect();
+    let providers: Vec<&str> = metadata
+      .external_ids
+      .iter()
+      .map(|id| id.provider.as_str())
+      .collect();
     assert_eq!(providers, ["tvmaze", "imdb", "tvdb", "tmdb"]);
     let tmdb = metadata
       .external_ids
@@ -306,12 +322,18 @@ mod tests {
   fn query_component_encoding_is_url_safe() {
     assert_eq!(encode_component("The Wire & Stuff"), "The+Wire+%26+Stuff");
     assert_eq!(encode_component("24"), "24");
-    assert_eq!(encode_component("Y tu mamá también"), "Y+tu+mam%C3%A1+tambi%C3%A9n");
+    assert_eq!(
+      encode_component("Y tu mamá también"),
+      "Y+tu+mam%C3%A1+tambi%C3%A9n"
+    );
     assert_eq!(
       search_url("The Wire & Stuff"),
       "https://api.tvmaze.com/singlesearch/shows?q=The+Wire+%26+Stuff&embed=cast"
     );
-    assert_eq!(show_url("169"), "https://api.tvmaze.com/shows/169?embed=cast");
+    assert_eq!(
+      show_url("169"),
+      "https://api.tvmaze.com/shows/169?embed=cast"
+    );
   }
 
   #[test]
@@ -325,7 +347,12 @@ mod tests {
     assert_eq!(metadata.release_year, None);
     assert_eq!(metadata.runtime_secs, None);
     // Even without summary/externals the identity survives.
-    assert!(metadata.external_ids.iter().any(|id| id.provider == "tvmaze"));
+    assert!(
+      metadata
+        .external_ids
+        .iter()
+        .any(|id| id.provider == "tvmaze")
+    );
   }
 
   #[test]

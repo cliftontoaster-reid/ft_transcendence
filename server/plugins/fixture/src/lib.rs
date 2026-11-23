@@ -23,7 +23,10 @@ impl sdk::Plugin for Fixture {
   }
 
   fn search(query: &sdk::MediaQuery) -> Result<Vec<sdk::SearchResult>, String> {
-    sdk::log(sdk::log_level::INFO, &format!("fixture search for {:?}", query.title));
+    sdk::log(
+      sdk::log_level::INFO,
+      &format!("fixture search for {:?}", query.title),
+    );
 
     if query.title.starts_with("http") {
       let response = sdk::http::get(&query.title)?;
@@ -102,9 +105,16 @@ impl sdk::Plugin for Fixture {
           billing: 0,
         }],
         external_ids: vec![
-          sdk::ExternalId { provider: "fixture".to_string(), value: "1".to_string() },
-          sdk::ExternalId { provider: "imdb".to_string(), value: "tt0000001".to_string() },
+          sdk::ExternalId {
+            provider: "fixture".to_string(),
+            value: "1".to_string(),
+          },
+          sdk::ExternalId {
+            provider: "imdb".to_string(),
+            value: "tt0000001".to_string(),
+          },
         ],
+        genres: vec!["Drama".to_string()],
       }),
       other => Err(format!("unknown fixture id {other}")),
     }

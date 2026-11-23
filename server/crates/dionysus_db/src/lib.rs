@@ -9,6 +9,7 @@ use std::{env, error::Error};
 use uuid::Uuid;
 
 pub mod models;
+pub mod recommendations;
 pub mod schema;
 pub mod types;
 
