@@ -84,7 +84,13 @@
 	}
 
 	// Function to handle reacting to a message
-	function reactToMessage(message: ChatMessage, emoji: string) {
+	function reactToMessage(message: ChatMessage, emoji: string, existingReplyId?: string) {
+		if (existingReplyId) {
+			// Si l'utilisateur a déjà mis ce même émoji, on retire la réaction
+			// (à brancher sur la méthode de suppression de chatStore / Protobuf)
+			chatStore.deleteMessage?.(existingReplyId);
+			return;
+		}
 		chatStore.sendMessage(emoji, message.id);
 	}
 

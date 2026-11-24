@@ -1,5 +1,12 @@
 import { ChatClient, type ChatEvent } from './client';
-import type { Message, ChannelSnapshot, UserJoined, UserLeft, MessageEdited } from '$lib/proto/dionysus/chat/v1/message_pb';
+import type {
+  Message,
+  ChannelSnapshot,
+  UserJoined,
+  UserLeft,
+  MessageEdited,
+  MessageDeleted,
+} from '$lib/proto/dionysus/chat/v1/message_pb';
 import type { UserID } from '$lib/proto/dionysus/user/v1/user_pb';
 
 export interface ChatMessage {
@@ -26,7 +33,14 @@ export interface KnownUser {
 }
 
 function uuidToString(bytes: Uint8Array): string {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  return Uint8Array.from(
+    hex.match(/.{2}/g) ?? [],
+    (byte) => Number.parseInt(byte, 16)
+  );
 }
 
 function userIdToString(userId: UserID | undefined): string {
@@ -42,7 +56,7 @@ function createDMChannelId(userId1: string, userId2: string): string {
   const sorted = [userId1, userId2].sort();
   return `dm:${sorted.join(':')}`;
 }
-// The ChatStore class manages the state of the chat application, including messages, channels, and user information.
+
 export class ChatStore {
   client = new ChatClient();
   messagesByChannel = $state<Record<string, ChatMessage[]>>({});
@@ -54,7 +68,6 @@ export class ChatStore {
   connectionError = $state<string | null>(null);
   unsubscribe: (() => void) | null = null;
 
-  // Track known users by ID
   knownUsers = $state<Record<string, KnownUser>>({});
 
   async connect(userId: Uint8Array, token: string, username: string = 'Moi') {
@@ -71,12 +84,22 @@ export class ChatStore {
     }
   }
 
+  deleteMessage(messageId: string) {
+    if (!messageId) return;
+
+    const msgBytes = hexToBytes(messageId);
+    const roomBytes = this.currentChannelId
+      ? new TextEncoder().encode(this.currentChannelId)
+      : undefined;
+
+    this.client.deleteMessage(msgBytes, roomBytes);
+  }
+
   private handleEvent(event: ChatEvent) {
     switch (event.type) {
       case 'connected':
         this.isConnected = true;
         this.connectionError = null;
-        // Join global channel by default
         const globalId = new TextEncoder().encode('global');
         this.client.joinChannel(globalId);
         break;
@@ -102,6 +125,10 @@ export class ChatStore {
         this.handleEdited(event.edited);
         break;
 
+      case 'deleted':
+        this.handleDeleted(event.deleted);
+        break;
+
       case 'joined':
         this.handleJoined(event.joined);
         break;
@@ -121,15 +148,14 @@ export class ChatStore {
     }
 
     const channelIdBytes = snapshot.room.id.value.value;
-    // Check if this is the global channel (bytes for "global")
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length &&
+    const isGlobal =
+      channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
     const channelName = snapshot.room.name || 'Unknown';
     const isDM = channelName.startsWith('dm:');
 
-    // Track users from participants
     for (const participant of snapshot.room.participant || []) {
       const participantId = userIdToString(participant.id);
       const participantName = participant.name || userIdToName(participant.id);
@@ -140,7 +166,7 @@ export class ChatStore {
       id: channelId,
       name: channelName,
       type: isDM ? 'dm' : 'global',
-      participants: snapshot.room.participant?.map(p => p.name || userIdToString(p.id)) || [],
+      participants: snapshot.room.participant?.map((p) => p.name || userIdToString(p.id)) || [],
     };
 
     if (!this.messagesByChannel[channelId]) {
@@ -148,9 +174,8 @@ export class ChatStore {
     }
 
     const messages = snapshot.recentMessages || [];
-    const chatMessages: ChatMessage[] = messages.map(msg => {
+    const chatMessages: ChatMessage[] = messages.map((msg) => {
       const senderId = userIdToString(msg.senderId);
-      // Track known user
       this.knownUsers[senderId] = { id: senderId, name: userIdToName(msg.senderId) };
 
       return {
@@ -158,7 +183,16 @@ export class ChatStore {
         senderId,
         senderName: userIdToName(msg.senderId),
         text: msg.message,
-        timestamp: msg.createdAt ? new Date(msg.createdAt.year || 0, (msg.createdAt.month || 1) - 1, msg.createdAt.day || 1, msg.createdAt.hours || 0, msg.createdAt.minutes || 0, msg.createdAt.seconds || 0) : new Date(),
+        timestamp: msg.createdAt
+          ? new Date(
+              msg.createdAt.year || 0,
+              (msg.createdAt.month || 1) - 1,
+              msg.createdAt.day || 1,
+              msg.createdAt.hours || 0,
+              msg.createdAt.minutes || 0,
+              msg.createdAt.seconds || 0
+            )
+          : new Date(),
         isOwn: userIdToString(msg.senderId) === this.currentUserId,
         repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined,
       };
@@ -175,16 +209,15 @@ export class ChatStore {
     if (!msg.roomId?.value?.value) return;
 
     const channelIdBytes = msg.roomId.value.value;
-    // Check if this is the global channel (bytes for "global")
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length &&
+    const isGlobal =
+      channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
 
     const senderId = userIdToString(msg.senderId);
     const senderName = userIdToName(msg.senderId);
 
-    // Track known user
     this.knownUsers[senderId] = { id: senderId, name: senderName };
 
     if (!this.messagesByChannel[channelId]) {
@@ -196,12 +229,19 @@ export class ChatStore {
       senderId,
       senderName: userIdToName(msg.senderId),
       text: msg.message,
-      timestamp: msg.createdAt ? new Date(msg.createdAt.year || 0, (msg.createdAt.month || 1) - 1, msg.createdAt.day || 1, msg.createdAt.hours || 0, msg.createdAt.minutes || 0, msg.createdAt.seconds || 0) : new Date(),
+      timestamp: msg.createdAt
+        ? new Date(
+            msg.createdAt.year || 0,
+            (msg.createdAt.month || 1) - 1,
+            msg.createdAt.day || 1,
+            msg.createdAt.hours || 0,
+            msg.createdAt.minutes || 0,
+            msg.createdAt.seconds || 0
+          )
+        : new Date(),
       isOwn: senderId === this.currentUserId,
       repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined,
     };
-
-
 
     const messages = this.messagesByChannel[channelId] || [];
     messages.push(chatMessage);
@@ -215,7 +255,7 @@ export class ChatStore {
 
     for (const channelId of Object.keys(this.messagesByChannel)) {
       const messages = this.messagesByChannel[channelId];
-      const index = messages.findIndex(m => m.id === messageId);
+      const index = messages.findIndex((m) => m.id === messageId);
       if (index !== -1) {
         messages[index] = {
           ...messages[index],
@@ -228,12 +268,27 @@ export class ChatStore {
     }
   }
 
+  private handleDeleted(deleted: MessageDeleted) {
+    if (!deleted.id?.value?.value) return;
+
+    const messageId = uuidToString(deleted.id.value.value);
+
+    for (const channelId of Object.keys(this.messagesByChannel)) {
+      const messages = this.messagesByChannel[channelId];
+      const filtered = messages.filter((m) => m.id !== messageId);
+      if (filtered.length !== messages.length) {
+        this.messagesByChannel[channelId] = filtered;
+      }
+    }
+  }
+
   private handleJoined(joined: UserJoined) {
     if (!joined.channelId?.value?.value || !joined.user) return;
 
     const channelIdBytes = joined.channelId.value.value;
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length &&
+    const isGlobal =
+      channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
 
@@ -243,7 +298,6 @@ export class ChatStore {
       this.channels[channelId] = { ...channel, participants };
     }
 
-    // Track the user who joined
     const userId = userIdToString(joined.user.id);
     const userName = joined.user.name || userIdToName(joined.user.id);
     this.knownUsers[userId] = { id: userId, name: userName };
@@ -254,13 +308,14 @@ export class ChatStore {
 
     const channelIdBytes = left.channelId.value.value;
     const globalBytes = new TextEncoder().encode('global');
-    const isGlobal = channelIdBytes.length === globalBytes.length &&
+    const isGlobal =
+      channelIdBytes.length === globalBytes.length &&
       channelIdBytes.every((b, i) => b === globalBytes[i]);
     const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
     const userId = uuidToString(left.userId.value.value);
     const channel = this.channels[channelId];
     if (channel) {
-      const participants = channel.participants.filter(p => p !== userId);
+      const participants = channel.participants.filter((p) => p !== userId);
       this.channels[channelId] = { ...channel, participants };
     }
   }
@@ -270,16 +325,11 @@ export class ChatStore {
     return this.messagesByChannel[this.currentChannelId] || [];
   });
 
-  // Expose currentUserId for components that need it
-  // currentUserId is already a $state property
-
-  // DM channels with their participants and channel IDs
   dmChannels = $derived.by(() => {
     const channels: Array<{ channelId: string; name: string; lastMessage: string; timestamp: Date }> = [];
     for (const [channelId, messages] of Object.entries(this.messagesByChannel)) {
       if (channelId.startsWith('dm:') && messages.length > 0) {
-        // Find the other participant (not current user)
-        const otherMsg = messages.find(m => !m.isOwn);
+        const otherMsg = messages.find((m) => !m.isOwn);
         if (otherMsg) {
           const lastMsg = messages[messages.length - 1];
           channels.push({
@@ -291,34 +341,28 @@ export class ChatStore {
         }
       }
     }
-    // Sort by timestamp descending
     return channels.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   });
 
-  // Known users list for contacts sidebar (excluding self)
   knownUsersList = $derived.by(() => {
     return Object.values(this.knownUsers)
-      .filter(user => user.id !== this.currentUserId)
+      .filter((user) => user.id !== this.currentUserId)
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
   sendMessage(text: string, replyTo?: string) {
     if (!this.currentChannelId || !text.trim()) return;
 
-    const channelId = this.currentChannelId === 'global'
-      ? new TextEncoder().encode('global')
-      : new TextEncoder().encode(this.currentChannelId);
+    const channelId =
+      this.currentChannelId === 'global'
+        ? new TextEncoder().encode('global')
+        : new TextEncoder().encode(this.currentChannelId);
 
-    const replyToBytes = replyTo
-      ? Uint8Array.from(
-          replyTo.match(/.{2}/g) ?? [],
-          (byte) => Number.parseInt(byte, 16)
-        )
-      : undefined;
+    const replyToBytes = replyTo ? hexToBytes(replyTo) : undefined;
 
     this.client.sendMessage(channelId, text.trim(), replyToBytes);
   }
-  
+
   joinChannel(channelId: string) {
     const encoded = new TextEncoder().encode(channelId);
     this.client.joinChannel(encoded);
@@ -330,15 +374,13 @@ export class ChatStore {
   }
 
   startDM(userId: string) {
-    // For DM, we create a channel ID using sorted user IDs
     if (!this.currentUserId) return;
     const channelId = createDMChannelId(this.currentUserId, userId);
     this.joinChannel(channelId);
   }
 
-  // Convenience method to start DM by user name (looks up the user ID)
   startDMByName(userName: string) {
-    const user = Object.values(this.knownUsers).find(u => u.name === userName);
+    const user = Object.values(this.knownUsers).find((u) => u.name === userName);
     if (user) {
       this.startDM(user.id);
     }
@@ -353,5 +395,5 @@ export class ChatStore {
     this.isConnected = false;
   }
 }
-// Create a singleton instance of ChatStore for use throughout the app
+
 export const chatStore = new ChatStore();

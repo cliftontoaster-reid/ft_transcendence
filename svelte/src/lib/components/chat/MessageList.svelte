@@ -16,12 +16,13 @@
 		isDirectMessage: boolean;
 		channelName: string;
 		onReply: (message: ChatMessageData) => void;
-		onReact: (message: ChatMessageData, emoji: string) => void;
+		onReact: (message: ChatMessageData, emoji: string, existingReplyId?: string) => void;
 	} = $props();
 
 	let messagesElement: HTMLDivElement | null = null;
 	let scrollTimeout: ReturnType<typeof setTimeout> | undefined;
 	let reactionPickerMessageId = $state<string | null>(null);
+	let hoveredReaction = $state<{ messageId: string; emoji: string } | null>(null);
 
 	function scrollToBottom() {
 		if (messagesElement) {
@@ -29,7 +30,6 @@
 		}
 	}
 
-	// Cette fonction récupère les réponses à un message donné en filtrant la liste des messages pour trouver ceux qui ont l'ID du message d'origine comme valeur de la propriété repliesTo.
 	function getReplies(messageId: string) {
 		return messages.filter((candidate) => candidate.repliesTo === messageId);
 	}
@@ -40,13 +40,10 @@
 		);
 	}
 
-	//fonction qui concernen les réponses émojis
-	// Cette fonction récupère les réponses textuelles à un message donné en filtrant les réponses pour exclure celles qui sont des emojis.
 	function getTextReplies(messageId: string) {
 		return getReplies(messageId).filter((reply) => !isEmojiReply(reply.text));
 	}
 
-	// Cette fonction regroupe les réactions (réponses emoji) à un message donné en comptant combien de fois chaque emoji a été utilisé comme réaction.
 	function getGroupedReactions(messageId: string) {
 		const reactions = getReplies(messageId).filter((reply) => isEmojiReply(reply.text));
 		const grouped: Record<string, number> = {};
@@ -56,28 +53,29 @@
 		return grouped;
 	}
 
+	function getUsersForReaction(messageId: string, emoji: string) {
+		return getReplies(messageId)
+			.filter((reply) => isEmojiReply(reply.text) && reply.text.trim() === emoji)
+			.map((reply) => reply.senderName);
+	}
+
+	function getUserReactionReply(messageId: string, emoji: string) {
+		if (!currentUserId) return undefined;
+		return getReplies(messageId).find(
+			(reply) =>
+				reply.senderId === currentUserId &&
+				isEmojiReply(reply.text) &&
+				reply.text.trim() === emoji
+		);
+	}
+
+	function hasUserReacted(messageId: string, emoji: string) {
+		return !!getUserReactionReply(messageId, emoji);
+	}
 
 	function toggleReactionPicker(messageId: string) {
 		reactionPickerMessageId = reactionPickerMessageId === messageId ? null : messageId;
 	}
-
-	// État pour savoir quel émoji est actuellement "survolé" ou "cliqué" pour voir les détails (stocke l'ID du message + l'émoji)
-    let activeReactionTooltip = $state<{ messageId: string; emoji: string } | null>(null);
-
-    // Récupère les noms des expéditeurs pour un émoji donné sur un message
-    function getUsersForReaction(messageId: string, emoji: string) {
-        return getReplies(messageId)
-            .filter((reply) => isEmojiReply(reply.text) && reply.text.trim() === emoji)
-            .map((reply) => reply.senderName);
-    }
-
-    function toggleReactionDetails(messageId: string, emoji: string) {
-        if (activeReactionTooltip?.messageId === messageId && activeReactionTooltip?.emoji === emoji) {
-            activeReactionTooltip = null; // Ferme si on clique à nouveau
-        } else {
-            activeReactionTooltip = { messageId, emoji };
-        }
-    }
 
 	$effect(() => {
 		messages;
@@ -89,7 +87,6 @@
 	});
 </script>
 
-<!-- // ce fichier sert à afficher la liste des messages dans le chat. -->
 <div class="chat-messages" aria-live="polite" role="log" bind:this={messagesElement}>
 	{#if messages.length === 0}
 		<p class="empty-chat">
@@ -106,60 +103,65 @@
 					isEmojiPickerOpen={reactionPickerMessageId === message.id}
 					onToggleEmojiPicker={() => toggleReactionPicker(message.id)}
 					onReply={() => onReply(message)}
-					onReact={(emoji: string) => onReact(message, emoji)}
+					onReact={(emoji: string) =>
+						onReact(message, emoji, getUserReactionReply(message.id, emoji)?.id)}
 				/>
-				<!-- Bloc des réactions émojis groupées -->
-                {#if Object.keys(getGroupedReactions(message.id)).length > 0}
-                    <div class="reactions" class:own={message.isOwn} class:other={!message.isOwn}>
-                        {#each Object.entries(getGroupedReactions(message.id)) as [emoji, count] (emoji)}
-                            <div class="reaction-wrapper">
-                                <button
-                                    type="button"
-                                    class="emoji-pill"
-                                    onclick={() => toggleReactionDetails(message.id, emoji)}
-                                >
-                                    <span>{emoji}</span>
-                                    {#if count > 1}
-                                        <span class="reaction-count">{count}</span>
-                                    {/if}
-                                </button>
 
-                                <!-- Infobulle / Popover affichant les noms des utilisateurs -->
-                                {#if activeReactionTooltip?.messageId === message.id && activeReactionTooltip?.emoji === emoji}
-                                    <div class="reaction-popover">
-                                        <span class="popover-title">{emoji} réagi par :</span>
-                                        <ul>
-                                            {#each getUsersForReaction(message.id, emoji) as senderName}
-                                                <li>{senderName}</li>
-                                            {/each}
-                                        </ul>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/each}
-                    </div>
-                {/if}
-				{#if getTextReplies(message.id).length > 0} <!-- vérifie s'il y a des réponses textuelles au message -->
-					<div class="replies" class:own={message.isOwn} class:other={!message.isOwn}>
-						{#each getTextReplies(message.id) as reply (reply.id)}
+				{#if Object.keys(getGroupedReactions(message.id)).length > 0}
+					<div class="reactions" class:own={message.isOwn} class:other={!message.isOwn}>
+						{#each Object.entries(getGroupedReactions(message.id)) as [emoji, count] (emoji)}
 							<div
-								class="reply"
-								title={`Réponse de ${reply.senderName}`}
+								class="reaction-wrapper"
+								role="group"
+								onmouseenter={() => (hoveredReaction = { messageId: message.id, emoji })}
+								onmouseleave={() => (hoveredReaction = null)}
 							>
-								<span class="reply-sender">{reply.senderName} :</span>
-								{reply.text} <!-- affiche le texte de la réponse -->
+								<button
+									type="button"
+									class="emoji-pill"
+									class:reacted={hasUserReacted(message.id, emoji)}
+									aria-label={`Réagir avec ${emoji} (${count})`}
+									onfocus={() => (hoveredReaction = { messageId: message.id, emoji })}
+									onblur={() => (hoveredReaction = null)}
+									onclick={() =>
+										onReact(message, emoji, getUserReactionReply(message.id, emoji)?.id)}
+								>
+									<span>{emoji}</span>
+									{#if count > 1}
+										<span class="reaction-count">{count}</span>
+									{/if}
+								</button>
+
+								{#if hoveredReaction?.messageId === message.id && hoveredReaction?.emoji === emoji}
+									<div class="reaction-popover" role="tooltip">
+										<span class="popover-title">{emoji} réagi par :</span>
+										<ul>
+											{#each getUsersForReaction(message.id, emoji) as senderName}
+												<li>{senderName}</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
 							</div>
 						{/each}
 					</div>
 				{/if}
 
-				
+				{#if getTextReplies(message.id).length > 0}
+					<div class="replies" class:own={message.isOwn} class:other={!message.isOwn}>
+						{#each getTextReplies(message.id) as reply (reply.id)}
+							<div class="reply" title={`Réponse de ${reply.senderName}`}>
+								<span class="reply-sender">{reply.senderName} :</span>
+								{reply.text}
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/each}
 	{/if}
 </div>
 
-<!-- cette partie gère le style des messages dans la liste -->
 <style>
     .chat-messages {
         display: flex;
@@ -186,7 +188,6 @@
         gap: 0.35rem;
     }
 
-    /* --- Conteneur des réactions émojis --- */
     .reactions {
         display: flex;
         max-width: 80%;
@@ -205,7 +206,6 @@
         justify-content: flex-start;
     }
 
-    /* --- Style de la pilule émoji --- */
     .emoji-pill {
         display: inline-flex;
         align-items: center;
@@ -226,25 +226,38 @@
         background: #35242b;
     }
 
+    .emoji-pill.reacted {
+		border-color: #ffad5c;
+		background: #35242b;
+	}
+
     .reaction-count {
         font-size: 0.75rem;
         font-weight: 600;
         color: #e4e4e7;
     }
 
+    .reaction-wrapper {
+		position: relative;
+		display: inline-flex;
+	}
 
-    /* 1. La boîte entière du popover */
-    .reaction-popover {
-        position: relative;
-        background: #18181b;
-        border: 1px solid #ffad5c;
-        border-radius: 6px;
-        padding: 0.5rem;
-        color: #ffffff;
-        z-index: 50;
-    }
+	.reaction-popover {
+		position: absolute;
+		bottom: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%);
+		min-width: max-content;
+		background: #18181b;
+		border: 1px solid #ffad5c;
+		border-radius: 6px;
+		padding: 0.5rem;
+		color: #ffffff;
+		box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+		z-index: 50;
+		pointer-events: none;
+	}
 
-    /* 2. Le titre ("👍 réagi par :") */
     .popover-title {
         display: block;
         font-size: 0.75rem;
@@ -255,11 +268,10 @@
         padding-bottom: 0.25rem;
     }
 
-    /* 3. La liste des noms d'utilisateurs */
     .reaction-popover ul {
         margin: 0;
         padding: 0;
-        list-style: none; /* Enlève les points devant les noms */
+        list-style: none;
         font-size: 0.85rem;
         color: #f4f4f5;
         display: flex;
@@ -267,7 +279,6 @@
         gap: 0.2rem;
     }
 
-    /* --- Conteneur et style des réponses textuelles --- */
     .replies {
         display: flex;
         flex-direction: column;

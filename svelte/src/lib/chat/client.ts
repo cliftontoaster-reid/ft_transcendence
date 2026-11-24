@@ -5,9 +5,11 @@ import type {
   JoinChannel,
   SendMessage,
   EditMessage,
+  DeleteMessage,
   Ping,
   Message,
   MessageEdited,
+  MessageDeleted,
   UserJoined,
   UserLeft,
   ChannelSnapshot,
@@ -21,6 +23,7 @@ import {
   JoinChannelSchema,
   SendMessageSchema,
   EditMessageSchema,
+  DeleteMessageSchema,
   PingSchema,
   MessageIDSchema,
 } from '$lib/proto/dionysus/chat/v1/message_pb';
@@ -38,6 +41,7 @@ export type ChatEvent =
   | { type: 'error'; error: Error }
   | { type: 'message'; message: Message }
   | { type: 'edited'; edited: MessageEdited }
+  | { type: 'deleted'; deleted: MessageDeleted }
   | { type: 'joined'; joined: UserJoined }
   | { type: 'left'; left: UserLeft }
   | { type: 'snapshot'; snapshot: ChannelSnapshot }
@@ -187,6 +191,17 @@ export class ChatClient {
     this.sendFrame(frame);
   }
 
+  deleteMessage(messageId: Uint8Array, channelId?: Uint8Array) {
+    const del: DeleteMessage = create(DeleteMessageSchema, {
+      id: create(MessageIDSchema, { value: create(UUIDSchema, { value: messageId }) }),
+      roomId: channelId
+        ? create(RoomIDSchema, { value: create(UUIDSchema, { value: channelId }) })
+        : undefined,
+    });
+    const frame: ClientFrame = create(ClientFrameSchema, { payload: { case: 'delete', value: del } });
+    this.sendFrame(frame);
+  }
+
   private sendFrame(frame: ClientFrame) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.warn('[ChatClient] Not connected, dropping message');
@@ -214,6 +229,9 @@ export class ChatClient {
         break;
       case 'edited':
         this.emit({ type: 'edited', edited: frame.payload.value });
+        break;
+      case 'deleted':
+        this.emit({ type: 'deleted', deleted: frame.payload.value });
         break;
       case 'joined':
         this.emit({ type: 'joined', joined: frame.payload.value });
