@@ -59,6 +59,7 @@
 			<a href="/profile" class="nav-item" title="Profile">
 				<Person class="icon" />
 			</a>
+			<a href="/login" class="login-link">Connexion</a>
 		</div>
 	</nav>
 </header>
@@ -182,6 +183,13 @@
 	.nav-links a:focus-visible {
 		color: #ff7a1a;
 		filter: drop-shadow(0 0 5px rgb(255 173 92 / 75%)) drop-shadow(0 0 14px rgb(255 122 26 / 55%));
+	}
+
+	.login-link {
+		padding: 0.5rem 0.8rem;
+		border: 1px solid rgb(255 173 92 / 50%);
+		border-radius: 999px;
+		font-weight: 700;
 	}
 
 	/* setting icons */
