@@ -37,7 +37,13 @@
 		<span class="edited-badge">édité</span>
 	{/if}
 	<span class="timestamp">
-		{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+		{message.timestamp.toLocaleString('fr-FR', {
+			day: '2-digit',
+			month: '2-digit',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		})}
 	</span>
 	<div class="message-actions">
 		<button
