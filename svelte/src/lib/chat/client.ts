@@ -3,6 +3,7 @@ import type {
   ServerFrame,
   Identify,
   JoinChannel,
+  LeaveChannel,
   SendMessage,
   EditMessage,
   DeleteMessage,
@@ -21,6 +22,7 @@ import {
   ServerFrameSchema,
   IdentifySchema,
   JoinChannelSchema,
+  LeaveChannelSchema,
   SendMessageSchema,
   EditMessageSchema,
   DeleteMessageSchema,
@@ -160,11 +162,11 @@ export class ChatClient {
   }
 
   leaveChannel(channelId: Uint8Array) {
-    const leave: LeaveChannel = create(JoinChannelSchema, {
-      channelId: create(RoomIDSchema, { value: create(UUIDSchema, { value: channelId }) }),
-    });
-    const frame: ClientFrame = create(ClientFrameSchema, { payload: { case: 'leave', value: leave } });
-    this.sendFrame(frame);
+      const leave: LeaveChannel = create(LeaveChannelSchema, {
+        channelId: create(RoomIDSchema, { value: create(UUIDSchema, { value: channelId }) }),
+      });
+      const frame: ClientFrame = create(ClientFrameSchema, { payload: { case: 'leave', value: leave } });
+      this.sendFrame(frame);
   }
 
   sendMessage(channelId: Uint8Array, text: string, repliesTo?: Uint8Array) {

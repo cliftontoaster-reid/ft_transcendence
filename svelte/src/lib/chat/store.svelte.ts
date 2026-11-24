@@ -158,7 +158,7 @@ export class ChatStore {
 
     for (const participant of snapshot.room.participant || []) {
       const participantId = userIdToString(participant.id);
-      const participantName = participant.name || userIdToName(participant.id);
+      const participantName = participant.username || userIdToName(participant.id);
       this.knownUsers[participantId] = { id: participantId, name: participantName };
     }
 
@@ -166,7 +166,7 @@ export class ChatStore {
       id: channelId,
       name: channelName,
       type: isDM ? 'dm' : 'global',
-      participants: snapshot.room.participant?.map((p) => p.name || userIdToString(p.id)) || [],
+      participants: snapshot.room.participant?.map((p) => p.username || userIdToString(p.id)) || [],
     };
 
     if (!this.messagesByChannel[channelId]) {
@@ -294,12 +294,12 @@ export class ChatStore {
 
     const channel = this.channels[channelId];
     if (channel) {
-      const participants = [...channel.participants, joined.user.name || 'Unknown'];
+      const participants = [...channel.participants, joined.user.username || 'Unknown'];
       this.channels[channelId] = { ...channel, participants };
     }
 
     const userId = userIdToString(joined.user.id);
-    const userName = joined.user.name || userIdToName(joined.user.id);
+    const userName = joined.user.username || userIdToName(joined.user.id);
     this.knownUsers[userId] = { id: userId, name: userName };
   }
 
