@@ -47,14 +47,13 @@ impl Fairing for Cors {
     if matches!(request.method(), Method::Options) {
       response.set_status(Status::Ok);
     }
-    if let Some(origin) = request.headers().get_one("Origin") {
-      if origin.starts_with("http://localhost:")
+    if let Some(origin) = request.headers().get_one("Origin")
+      && (origin.starts_with("http://localhost:")
         || origin.starts_with("http://127.0.0.1:")
         || origin.starts_with("https://localhost:")
-        || origin.starts_with("https://127.0.0.1:")
-      {
-        response.set_header(Header::new("Access-Control-Allow-Origin", origin));
-      }
+        || origin.starts_with("https://127.0.0.1:"))
+    {
+      response.set_header(Header::new("Access-Control-Allow-Origin", origin));
     }
     response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
     response.set_header(Header::new("Access-Control-Allow-Headers", "Content-Type"));

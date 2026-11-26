@@ -1,0 +1,104 @@
+# Copy .env.example to .env before starting.
+# Discord: register http://localhost:8000/auth/callback as the redirect URI,
+# put the client ID in oidc.toml and the secret in .env. Discord exposes
+# preferred_username through userinfo, which this auth service does not fetch,
+# so Discord users get the fallback display name "Dionysus user".
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-username}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-diesel_demo}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-username} -d ${POSTGRES_DB:-diesel_demo}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dionysus
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dionysus
+
+  oidc:
+    build:
+      context: ..
+      dockerfile: oidc.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-username}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-diesel_demo}
+      REDIS_URL: redis://redis:6379/0
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:3000/}
+      ROCKET_ADDRESS: 0.0.0.0
+      ROCKET_PORT: 8000
+      OIDC_CONFIG: /etc/dionysus/oidc.toml
+    volumes:
+      - ./oidc.toml:/etc/dionysus/oidc.toml:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dionysus
+
+  user:
+    build:
+      context: ..
+      dockerfile: user.Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-username}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-diesel_demo}
+      USER_LISTEN_ADDR: 0.0.0.0:50052
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dionysus
+
+  web:
+    build:
+      context: ..
+      dockerfile: svelte.Dockerfile
+    restart: unless-stopped
+    environment:
+      # Browser-facing URLs stay on localhost; server-side session checks use the network.
+      PUBLIC_AUTH_URL: http://localhost:8000
+      PUBLIC_API_URL: http://oidc:8000
+      PUBLIC_AUTH_CALLBACK_URL: http://localhost:8000/auth/callback
+      USER_SERVICE_URL: http://user:50052
+    ports:
+      - "3000:3000"
+    depends_on:
+      - oidc
+      - user
+    networks:
+      - dionysus
+
+networks:
+  dionysus:
+    driver: bridge

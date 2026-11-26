@@ -111,7 +111,13 @@ impl LoginUrlService {
       return Err(LoginUrlError::MissingOpenidScope(provider_name.to_owned()));
     }
     let client_secret = provider.client_secret.resolve()?;
-    let issuer = IssuerUrl::new(provider.issuer_url.to_string())?;
+    let issuer = IssuerUrl::new(
+      provider
+        .issuer_url
+        .as_str()
+        .trim_end_matches('/')
+        .to_owned(),
+    )?;
     let http_client = reqwest::ClientBuilder::new()
       .redirect(reqwest::redirect::Policy::none())
       .build()
@@ -136,7 +142,14 @@ impl LoginUrlService {
         Nonce::new_random,
       )
       .set_pkce_challenge(pkce_challenge)
-      .add_scopes(provider.scopes.iter().cloned().map(Scope::new))
+      .add_scopes(
+        provider
+          .scopes
+          .iter()
+          .filter(|scope| scope.as_str() != "openid")
+          .cloned()
+          .map(Scope::new),
+      )
       .url();
 
     let state = csrf_state.secret().to_owned();
@@ -188,7 +201,13 @@ impl LoginUrlService {
       .get(&transaction.provider)
       .ok_or_else(|| LoginUrlError::UnknownProvider(transaction.provider.clone()))?;
     let client_secret = provider.client_secret.resolve()?;
-    let issuer = IssuerUrl::new(provider.issuer_url.to_string())?;
+    let issuer = IssuerUrl::new(
+      provider
+        .issuer_url
+        .as_str()
+        .trim_end_matches('/')
+        .to_owned(),
+    )?;
     let http_client = reqwest::ClientBuilder::new()
       .redirect(reqwest::redirect::Policy::none())
       .build()
