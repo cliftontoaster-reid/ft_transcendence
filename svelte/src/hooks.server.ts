@@ -20,6 +20,7 @@ import type { Handle } from "@sveltejs/kit";
 import { sequence } from "@sveltejs/kit/hooks";
 import { dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
+import { env as publicEnv } from "$env/dynamic/public";
 import { isUuid } from "$lib/uuid";
 import { getTextDirection } from "$lib/paraglide/runtime";
 import { paraglideMiddleware } from "$lib/paraglide/server";
@@ -36,12 +37,25 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 		});
 	});
 
-// Sets `event.locals.userId`, the user the gRPC calls act on behalf of.
-// TODO: replace with the real session lookup (sessions table / OIDC login).
-// Until then the id only comes from DEV_USER_ID, and only in dev mode, so a
-// production build can never be tricked into acting as someone else.
-const handleAuth: Handle = ({ event, resolve }) => {
-	if (dev && env.DEV_USER_ID && isUuid(env.DEV_USER_ID)) {
+const handleAuth: Handle = async ({ event, resolve }) => {
+	const sessionCookie = event.cookies.get('dionysus_session');
+	if (sessionCookie) {
+		const apiUrl = (publicEnv.PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+		const response = await event.fetch(`${apiUrl}/auth/session`, {
+			headers: { cookie: `dionysus_session=${encodeURIComponent(sessionCookie)}` }
+		});
+		if (response.ok) {
+			const body = (await response.json()) as { userId?: unknown };
+			if (typeof body.userId !== 'string' || !isUuid(body.userId)) {
+				throw new Error('Authentication service returned an invalid session.');
+			}
+			event.locals.userId = body.userId;
+		} else if (response.status !== 401) {
+			throw new Error(`Authentication service failed to validate the session (${response.status}).`);
+		}
+	}
+
+	if (!event.locals.userId && dev && env.DEV_USER_ID && isUuid(env.DEV_USER_ID)) {
 		event.locals.userId = env.DEV_USER_ID;
 	}
 	return resolve(event);

@@ -72,6 +72,7 @@ pub struct LoginRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct AuthenticatedUser {
   pub provider: String,
+  pub issuer: String,
   pub subject: String,
   pub email: Option<String>,
   pub preferred_username: Option<String>,
@@ -222,6 +223,7 @@ impl LoginUrlService {
 
     Ok(AuthenticatedUser {
       provider: transaction.provider,
+      issuer: provider.issuer_url.to_string(),
       subject: claims.subject().as_str().to_owned(),
       email: claims.email().map(|email| email.as_str().to_owned()),
       preferred_username: claims

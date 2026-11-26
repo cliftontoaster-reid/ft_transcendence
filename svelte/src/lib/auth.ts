@@ -1,15 +1,15 @@
 import { env } from '$env/dynamic/public';
 
-const apiUrl = (env.PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+const authUrl = (env.PUBLIC_AUTH_URL ?? '').replace(/\/$/, '');
 
 export function providerLoginUrl(provider: 'google' | 'discord'): string {
-	const callback = env.PUBLIC_AUTH_CALLBACK_URL ?? `${apiUrl}/auth/callback`;
+	const callback = env.PUBLIC_AUTH_CALLBACK_URL ?? 'http://localhost:5173/auth/callback';
 	const params = new URLSearchParams({ redirect_uri: callback });
-	return `${apiUrl}/auth/login/${provider}?${params.toString()}`;
+	return `${authUrl}/auth/login/${provider}?${params.toString()}`;
 }
 
 export async function passwordLogin(email: string, password: string): Promise<void> {
-	const response = await fetch(`${apiUrl}/auth/login`, {
+	const response = await fetch(`${authUrl}/auth/login`, {
 		method: 'POST',
 		credentials: 'include',
 		headers: { 'Content-Type': 'application/json' },
@@ -27,7 +27,7 @@ export async function passwordRegister(
 	password: string,
 	username: string
 ): Promise<void> {
-	const response = await fetch(`${apiUrl}/auth/register`, {
+	const response = await fetch(`${authUrl}/auth/register`, {
 		method: 'POST',
 		credentials: 'include',
 		headers: { 'Content-Type': 'application/json' },

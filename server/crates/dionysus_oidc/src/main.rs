@@ -3,6 +3,7 @@ use argon2::{
   password_hash::{SaltString, rand_core::OsRng},
 };
 use chrono::{Duration, Utc};
+use diesel::Connection;
 use diesel::{OptionalExtension, PgConnection, QueryableByName, RunQueryDsl, sql_query};
 use dionysus_db::{establish_connection, run_migrations};
 use dionysus_oidc::{
@@ -90,6 +91,20 @@ struct AuthUser {
   username: String,
 }
 
+#[derive(QueryableByName)]
+struct OidcUserId {
+  #[diesel(sql_type = diesel::sql_types::Uuid)]
+  id: Uuid,
+}
+
+#[derive(Serialize, QueryableByName)]
+#[serde(crate = "rocket::serde")]
+struct AuthSession {
+  #[diesel(sql_type = diesel::sql_types::Uuid)]
+  #[serde(rename = "userId")]
+  user_id: Uuid,
+}
+
 struct AuthState {
   connection: Mutex<PgConnection>,
 }
@@ -124,6 +139,76 @@ fn set_session(
       .build(),
   );
   Ok(())
+}
+
+fn find_or_create_oidc_user(
+  connection: &mut PgConnection,
+  authenticated_user: &dionysus_oidc::login::AuthenticatedUser,
+) -> Result<Uuid, diesel::result::Error> {
+  let find_user = |connection: &mut PgConnection| {
+    sql_query(
+      "SELECT users.id FROM oidc_identities
+       JOIN users ON users.id = oidc_identities.user_id
+       WHERE oidc_identities.issuer = $1 AND oidc_identities.subject = $2
+         AND users.disabled = false",
+    )
+    .bind::<diesel::sql_types::Text, _>(&authenticated_user.issuer)
+    .bind::<diesel::sql_types::Text, _>(&authenticated_user.subject)
+    .get_result::<OidcUserId>(connection)
+    .optional()
+  };
+
+  if let Some(user) = find_user(connection)? {
+    return Ok(user.id);
+  }
+
+  let display_name = authenticated_user
+    .preferred_username
+    .as_deref()
+    .map(str::trim)
+    .filter(|name| !name.is_empty())
+    .unwrap_or("Dionysus user")
+    .chars()
+    .take(256)
+    .collect::<String>();
+
+  let result = connection.transaction::<Uuid, diesel::result::Error, _>(|connection| {
+    if let Some(user) = find_user(connection)? {
+      return Ok(user.id);
+    }
+
+    let user = sql_query("INSERT INTO users (display_name, email) VALUES ($1, $2) RETURNING id")
+      .bind::<diesel::sql_types::Text, _>(&display_name)
+      .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(
+        authenticated_user.email.as_deref(),
+      )
+      .get_result::<OidcUserId>(connection)?;
+
+    sql_query(
+      "INSERT INTO oidc_identities (user_id, issuer, subject, email)
+       VALUES ($1, $2, $3, $4)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user.id)
+    .bind::<diesel::sql_types::Text, _>(&authenticated_user.issuer)
+    .bind::<diesel::sql_types::Text, _>(&authenticated_user.subject)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(
+      authenticated_user.email.as_deref(),
+    )
+    .execute(connection)?;
+
+    Ok(user.id)
+  });
+
+  match result {
+    Ok(user_id) => Ok(user_id),
+    Err(
+      error @ diesel::result::Error::DatabaseError(
+        diesel::result::DatabaseErrorKind::UniqueViolation,
+        _,
+      ),
+    ) => find_user(connection)?.map(|user| user.id).ok_or(error),
+    Err(error) => Err(error),
+  }
 }
 
 #[rocket::post("/auth/register", data = "<request>")]
@@ -249,6 +334,39 @@ fn logout(cookies: &CookieJar<'_>, state: &State<AuthState>) -> Status {
   Status::NoContent
 }
 
+#[rocket::get("/auth/session")]
+fn current_session(
+  cookies: &CookieJar<'_>,
+  state: &State<AuthState>,
+) -> Result<Json<AuthSession>, Status> {
+  let token = cookies
+    .get(SESSION_COOKIE)
+    .and_then(|cookie| Uuid::parse_str(cookie.value()).ok())
+    .ok_or(Status::Unauthorized)?;
+  let mut connection = state
+    .connection
+    .lock()
+    .map_err(|_| Status::InternalServerError)?;
+
+  sql_query(
+    "SELECT users.id AS user_id FROM sessions
+     JOIN users ON users.id = sessions.user_id
+     WHERE sessions.jti = $1 AND sessions.expires_at > NOW()
+       AND sessions.revoked_at IS NULL AND users.disabled = false",
+  )
+  .bind::<diesel::sql_types::Uuid, _>(token)
+  .get_result::<AuthSession>(&mut *connection)
+  .map(Json)
+  .map_err(|error| {
+    if error == diesel::result::Error::NotFound {
+      Status::Unauthorized
+    } else {
+      tracing::error!(?error, "could not validate auth session");
+      Status::InternalServerError
+    }
+  })
+}
+
 #[derive(Debug, rocket::serde::Deserialize)]
 #[serde(crate = "rocket::serde")]
 struct ConfigFile {
@@ -290,10 +408,12 @@ pub async fn generate_openid_url(
 }
 
 #[rocket::get("/auth/callback?<query..>")]
-pub async fn handle_openid_callback(
+async fn handle_openid_callback(
   query: CallbackQuery,
+  cookies: &CookieJar<'_>,
   service: &State<LoginUrlService>,
-) -> Result<Json<dionysus_oidc::login::AuthenticatedUser>, Status> {
+  state: &State<AuthState>,
+) -> Result<Redirect, Status> {
   let callback = CallbackRequest {
     code: query.code,
     state: query.state,
@@ -301,11 +421,24 @@ pub async fn handle_openid_callback(
     error_description: query.error_description,
   };
 
-  service
+  let authenticated_user = service
     .handle_callback(callback)
     .await
-    .map(Json)
-    .map_err(callback_error_status)
+    .map_err(callback_error_status)?;
+
+  let mut connection = state
+    .connection
+    .lock()
+    .map_err(|_| Status::InternalServerError)?;
+  let user_id = find_or_create_oidc_user(&mut connection, &authenticated_user).map_err(|error| {
+    tracing::error!(?error, provider = %authenticated_user.provider, "could not resolve OIDC user");
+    Status::InternalServerError
+  })?;
+  set_session(cookies, &mut connection, user_id)?;
+
+  Ok(Redirect::to(
+    env::var("PUBLIC_APP_URL").unwrap_or_else(|_| "http://localhost:5173/".to_string()),
+  ))
 }
 
 fn login_error_status(error: LoginUrlError) -> Status {
@@ -384,7 +517,8 @@ async fn rocket() -> Rocket<Build> {
         handle_openid_callback,
         register,
         password_login,
-        logout
+        logout,
+        current_session
       ],
     )
 }

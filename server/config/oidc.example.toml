@@ -1,0 +1,9 @@
+[oidc]
+default = "discord"
+
+[oidc.provider.discord]
+issuer_url = "https://discord.com"
+client_id = "REPLACE_WITH_DISCORD_CLIENT_ID"
+client_secret = "ENV::DISCORD_CLIENT_SECRET"
+redirect_uris = ["http://localhost:5173/auth/callback"]
+scopes = ["openid", "identify"]
