@@ -91,4 +91,49 @@
 			height: 300px;
 		}
 	}
+
+
+		.chat-container {
+			background: rgb(24 24 27 / 75%);
+			border: 1px solid #27272a;
+			border-radius: 6px;
+			box-shadow:
+				0 8px 24px rgba(0, 0, 0, 0.4),
+				0 0 8px 1px rgb(255 122 26 / 18%),
+				0 0 16px 3px rgb(255 122 26 / 8%);
+			transition: box-shadow 0.25s ease;
+
+			&:hover,
+			&:focus-within {
+				box-shadow: none;
+			}
+		}
+
+		.chat-header {
+			background: rgb(32 32 36 / 75%);
+			border-bottom: 1px solid #27272a;
+
+			h3 {
+				color: #ffffff;
+			}
+		}
+
+		.status-dot {
+			background-color: #71717a;
+
+			&.connected {
+				background-color: #22c55e;
+				box-shadow: 0 0 8px #22c55e;
+			}
+		}
+
+		.back-button {
+			color: #ffad5c;
+
+			&:hover {
+				color: #ffad5c;
+			}
+		}
 }
+
+
