@@ -14,14 +14,21 @@
   let chatOverlay: HTMLDivElement;
   let isFullscreen = $state(false);
   let showOverlayChat = $state(false);
+
+  // Mouse coordinates and visibility states
   let mouseX = $state(0);
   let mouseY = $state(0);
+  let chatMouseX = $state(0);
+  let chatMouseY = $state(0);
+  let isCursorVisible = $state(false);
+
   let mouseTimer: NodeJS.Timeout;
+  let cursorIdleTimer: NodeJS.Timeout;
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
-      playerContainer.requestFullscreen().catch(err => {
-        console.error(`Erreur lors du passage en plein écran : ${err.message}`);
+      playerContainer.requestFullscreen().catch((err) => {
+        console.error(`Fullscreen error: ${err.message}`);
       });
     } else {
       document.exitFullscreen();
@@ -32,26 +39,45 @@
     isFullscreen = !!document.fullscreenElement;
     if (!isFullscreen) {
       showOverlayChat = false;
+      isCursorVisible = false;
     }
   }
 
   function handleMouseMove(event: MouseEvent) {
     if (!isFullscreen) return;
-    if (chatOverlay) {
-      const rect = chatOverlay.getBoundingClientRect();
+
+    // Calculate coordinates relative to player container for custom cursor
+    if (playerContainer) {
+      const rect = playerContainer.getBoundingClientRect();
       mouseX = event.clientX - rect.left;
       mouseY = event.clientY - rect.top;
     }
+
+    // Calculate coordinates relative to chat overlay for spotlight gradient
+    if (chatOverlay) {
+      const chatRect = chatOverlay.getBoundingClientRect();
+      chatMouseX = event.clientX - chatRect.left;
+      chatMouseY = event.clientY - chatRect.top;
+    }
+
+    // Show overlay chat and keep it active
     showOverlayChat = true;
     clearTimeout(mouseTimer);
     mouseTimer = setTimeout(() => {
       showOverlayChat = false;
     }, 2500);
+
+    // Make custom cursor visible and reset idle fade-out timer
+    isCursorVisible = true;
+    clearTimeout(cursorIdleTimer);
+    cursorIdleTimer = setTimeout(() => {
+      isCursorVisible = false;
+    }, 1200);
   }
 </script>
 
 <svelte:head>
-  <title>{film.title} - Lecture</title>
+  <title>{film.title} - Watch Room</title>
 </svelte:head>
 
 <svelte:document onfullscreenchange={handleFullscreenChange} />
@@ -64,52 +90,61 @@
   <div class="watch-layout" class:contacts-hidden={!isContactsOpen}>
     <section class="video-section">
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div 
-        class="player-wrapper" 
+      <div
+        class="player-wrapper"
         bind:this={playerContainer}
         onmousemove={handleMouseMove}
       >
-        <VideoPlayer 
-          src={film.src} 
-          poster={film.poster} 
-          title={film.title} 
+        <VideoPlayer
+          src={film.src}
+          poster={film.poster}
+          title={film.title}
         />
 
-        <button 
-          class="fullscreen-btn" 
+        <!-- Standard fullscreen button (Normal mode) -->
+        <button
+          class="fullscreen-btn"
           class:visible={!isFullscreen}
           onclick={toggleFullscreen}
-          title="Plein écran"
-          aria-label="Activer le plein écran"
+          title="Fullscreen"
+          aria-label="Toggle fullscreen"
         >
           ⛶
         </button>
 
         {#if isFullscreen}
-          <div 
-            class="fullscreen-chat-overlay" 
-            class:visible={showOverlayChat} 
+          <!-- Compact custom cursor with orange/purple fill and idle fade-out -->
+          <div
+            class="dionysus-cursor"
+            class:visible={isCursorVisible}
+            style="left: {mouseX}px; top: {mouseY}px;"
+          ></div>
+
+          <!-- Fullscreen chat overlay with spotlight effect -->
+          <div
+            class="fullscreen-chat-overlay"
+            class:visible={showOverlayChat}
             class:contacts-hidden={!isContactsOpen}
             bind:this={chatOverlay}
-            style="--mouse-x: {mouseX}px; --mouse-y: {mouseY}px;"
+            style="--mouse-x: {chatMouseX}px; --mouse-y: {chatMouseY}px;"
           >
             <div class="chat-wrapper-inner">
               <Chat variant="watch-room" />
-              <button 
-                class="contacts-toggle-tab" 
-                onclick={() => isContactsOpen = !isContactsOpen}
-                title={isContactsOpen ? "Masquer les contacts" : "Afficher les contacts"}
-                aria-label="Basculer les contacts"
+              <button
+                class="contacts-toggle-tab"
+                onclick={() => (isContactsOpen = !isContactsOpen)}
+                title={isContactsOpen ? "Hide contacts" : "Show contacts"}
+                aria-label="Toggle contacts"
               >
                 {isContactsOpen ? '›' : '‹'}
               </button>
-              <button 
-                class="fullscreen-toggle-btn" 
+              <button
+                class="fullscreen-toggle-btn"
                 onclick={toggleFullscreen}
-                title="Plein écran"
-                aria-label="Basculer le plein écran"
+                title="Exit fullscreen"
+                aria-label="Exit fullscreen"
               >
-                ⛶
+                <span style="display: block; transform: translateY(-1px);">⛶</span>
               </button>
             </div>
           </div>
@@ -121,14 +156,15 @@
       </div>
     </section>
 
-    <aside class="chat-sidebar" aria-label="Chat de la watch room">
+    <!-- Normal sidebar chat -->
+    <aside class="chat-sidebar" aria-label="Watch room chat">
       <div class="chat-wrapper-inner">
         <Chat variant="watch-room" />
-        <button 
-          class="contacts-toggle-tab" 
-          onclick={() => isContactsOpen = !isContactsOpen}
-          title={isContactsOpen ? "Masquer les contacts" : "Afficher les contacts"}
-          aria-label="Basculer les contacts"
+        <button
+          class="contacts-toggle-tab"
+          onclick={() => (isContactsOpen = !isContactsOpen)}
+          title={isContactsOpen ? "Hide contacts" : "Show contacts"}
+          aria-label="Toggle contacts"
         >
           {isContactsOpen ? '›' : '‹'}
         </button>

@@ -61,6 +61,12 @@
     height: 100vh;
     aspect-ratio: auto;
     border-radius: 0;
+    
+    /* Completely hide default native cursor across the entire fullscreen player */
+    cursor: none !important;
+    * {
+      cursor: none !important;
+    }
   }
 }
 
@@ -68,6 +74,32 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
+}
+
+/* ==========================================================================
+   Custom Compact Cursor (Orange & Purple Fill with Idle Fade-Out)
+   ========================================================================== */
+
+.dionysus-cursor {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border-radius: 50%;
+  border: 1px solid #ff7a1a; /* Vibrant orange border */
+  background: radial-gradient(circle, #ff7a1a 0%, #7e22ce 100%); /* Orange core fading into rich purple */
+  box-shadow: 0 0 8px rgba(255, 122, 26, 0.8), 0 0 12px rgba(126, 34, 206, 0.6);
+  pointer-events: none;
+  z-index: 100;
+  
+  /* Smooth opacity transition for idle fade-out */
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.05s linear;
+
+  &.visible {
+    opacity: 1;
+  }
 }
 
 /* ==========================================================================
@@ -136,11 +168,11 @@
 
 .fullscreen-toggle-btn {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
+  bottom: 0px;
+  left: 0px;
   z-index: 50;
-  width: 32px;
-  height: 32px;
+  width: 45px;
+  height: 45px;
   background: #27272a;
   border: 1px solid #3f3f46;
   color: #e4e4e7;
@@ -157,7 +189,7 @@
     background: #ff7a1a;
     border-color: #ff7a1a;
     color: #ffffff;
-    transform: scale(1.05);
+    transform: scale(1.00);
   }
 }
 
@@ -191,11 +223,12 @@
   right: 0;
   bottom: 0;
   width: 400px;
+  /* Ultra-transparent base with a glowing radial gradient spotlight tracking the mouse */
   background: radial-gradient(
-    circle 350px at var(--mouse-x) var(--mouse-y),
-    rgba(18, 18, 20, 0.88) 0%,
-    rgba(18, 18, 20, 0.2) 50%,
-    rgba(18, 18, 20, 0.01) 100%
+    circle 260px at var(--mouse-x) var(--mouse-y),
+    rgba(18, 18, 20, 0.85) 0%,
+    rgba(18, 18, 20, 0.15) 60%,
+    rgba(18, 18, 20, 0.002) 100%
   );
   backdrop-filter: blur(6px);
   border-left: 1px solid rgba(255, 255, 255, 0.05);
@@ -219,7 +252,7 @@
     }
   }
 
-  /* Transparence des éléments internes de l'overlay */
+  /* Internal chat components transparency overrides */
   .chat-container,
   .conversation,
   .chat-sidebar,
@@ -280,9 +313,9 @@
     }
 
     button[type="submit"] {
-      width: 36px !important;
-      min-width: 36px !important;
-      height: 36px !important;
+      width: 45px !important;
+      min-width: 45px !important;
+      height: 45px !important;
       padding: 0 !important;
       font-size: 0 !important;
       display: flex !important;
