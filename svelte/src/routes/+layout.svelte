@@ -24,6 +24,7 @@
 	import SearchBar from '$lib/SearchBar.svelte';
 	import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import * as m from '$lib/paraglide/messages';
 	import './layout.scss';
 	import favicon from '$lib/assets/favicon.svg';
 	import '@fontsource/hanken-grotesk/600.css';
@@ -64,50 +65,50 @@
 		<div class="nav-search">
 			<SearchBar bind:searchQuery={searchQuery.value} />
 		</div>
-		<div class="nav-links">
-			<a href="/" class="nav-item" data-sveltekit-reload title="Home">
-				<Home class="icon" />
-			</a>
-			<a href="/movies" class="nav-item" title="Movies">
-				<Movie class="icon" />
-			</a>
-			<a href="/watch_room" class="nav-item" title="Watch Room">
-				<LiveTv class="icon" />
-			</a>
-			<a href="/profile" class="nav-item" title="Profile">
-				<Person class="icon" />
-			</a>
-			<div class="settings-menu" bind:this={menuRef}>
-				<button
-					type="button"
-					class="nav-item settings-btn"
-					title="Settings"
-					aria-label="Settings"
-					aria-expanded={menuOpen}
-					aria-haspopup="menu"
-					onclick={() => (menuOpen = !menuOpen)}
-				>
-					<Settings class="icon" />
-				</button>
+	<div class="nav-links">
+		<a href="/" class="nav-item" data-sveltekit-reload title={m.nav_home()}>
+			<Home class="icon" />
+		</a>
+		<a href="/movies" class="nav-item" title={m.nav_movies()}>
+			<Movie class="icon" />
+		</a>
+		<a href="/watch_room" class="nav-item" title={m.nav_watch_room()}>
+			<LiveTv class="icon" />
+		</a>
+		<a href="/profile" class="nav-item" title={m.nav_profile()}>
+			<Person class="icon" />
+		</a>
+		<div class="settings-menu" bind:this={menuRef}>
+			<button
+				type="button"
+				class="nav-item settings-btn"
+				title={m.nav_settings()}
+				aria-label={m.nav_settings()}
+				aria-expanded={menuOpen}
+				aria-haspopup="menu"
+				onclick={() => (menuOpen = !menuOpen)}
+			>
+				<Settings class="icon" />
+			</button>
 
-				{#if menuOpen}
-					<div class="settings-dropdown" role="menu" aria-label="Language">
-						<span class="dropdown-title">Language</span>
-						{#each locales as locale (locale)}
-							<a
-								href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
-								role="menuitem"
-								class="dropdown-item"
-								onclick={() => (menuOpen = false)}
-							>
-								{locale}
-							</a>
-						{/each}
-					</div>
-				{/if}
-			</div>
-			<a href="/login" class="login-link">Connexion</a>
+			{#if menuOpen}
+				<div class="settings-dropdown" role="menu" aria-label={m.nav_language()}>
+					<span class="dropdown-title">{m.nav_language()}</span>
+					{#each locales as locale (locale)}
+						<a
+							href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
+							role="menuitem"
+							class="dropdown-item"
+							onclick={() => (menuOpen = false)}
+						>
+							{locale}
+						</a>
+					{/each}
+				</div>
+			{/if}
 		</div>
+		<a href="/login" class="login-link">{m.nav_login()}</a>
+	</div>
 	</nav>
 </header>
 

@@ -1,0 +1,11 @@
+{
+	"hello_world": "¡Hola, {name} desde es !",
+	"nav_home": "Inicio",
+	"nav_movies": "Películas",
+	"nav_watch_room": "Watch Room",
+	"nav_profile": "Perfil",
+	"nav_settings": "Ajustes",
+	"nav_language": "Idioma",
+	"nav_login": "Iniciar sesión",
+	"footer_rights": "© 2026 - Todos los derechos reservados."
+}

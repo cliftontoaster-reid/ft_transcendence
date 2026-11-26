@@ -241,12 +241,12 @@
 		margin-top: 0.45rem;
 	}
 
-	.password-label a,
+	/* .password-label a,
 	.signup a {
 		color: #ffad5c;
 		font-weight: 700;
 		text-decoration: none;
-	}
+	} */
 
 	input {
 		width: 100%;

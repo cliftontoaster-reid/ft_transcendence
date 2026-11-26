@@ -1,4 +1,11 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from en!"
+	"hello_world": "Hello, {name} from en!",
+	"nav_home": "Home",
+	"nav_movies": "Movies",
+	"nav_watch_room": "Watch Room",
+	"nav_profile": "Profile",
+	"nav_settings": "Settings",
+	"nav_language": "Language",
+	"nav_login": "Log in",
+	"footer_rights": "© 2026 - All rights reserved."
 }
