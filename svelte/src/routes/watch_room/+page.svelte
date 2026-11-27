@@ -15,6 +15,14 @@
   let isFullscreen = $state(false);
   let showOverlayChat = $state(false);
 
+  // Active speaker state (set to { name: currentSpeakerName } when someone speaks, or null when silent)
+  let isVoiceCallActive = $state(true);
+  let isSpeakerLocked = $state(false);
+  let activeSpeaker = $state<{ name: string } | null>(null);
+  const activeSpeakerInitial = $derived(
+    activeSpeaker?.name?.trim().charAt(0).toUpperCase() || ''
+  );
+
   // Mouse coordinates and visibility states
   let mouseX = $state(0);
   let mouseY = $state(0);
@@ -37,7 +45,10 @@
 
   function handleFullscreenChange() {
     isFullscreen = !!document.fullscreenElement;
-    if (!isFullscreen) {
+    if (isFullscreen) {
+      isContactsOpen = false;
+    } else {
+      isContactsOpen = true;
       showOverlayChat = false;
       isCursorVisible = false;
     }
@@ -113,7 +124,7 @@
         </button>
 
         {#if isFullscreen}
-          <!-- Compact custom cursor with orange/purple fill and idle fade-out -->
+          <!-- Compact custom cursor with purple fill and idle fade-out -->
           <div
             class="dionysus-cursor"
             class:visible={isCursorVisible}
@@ -129,7 +140,27 @@
             style="--mouse-x: {chatMouseX}px; --mouse-y: {chatMouseY}px;"
           >
             <div class="chat-wrapper-inner">
+              {#if isVoiceCallActive}
+                <div class="speaker-rect" class:locked={isSpeakerLocked}>
+                  {#if activeSpeaker}
+                    <span class="speaker-avatar">{activeSpeakerInitial}</span>
+                    <span class="speaker-name">{activeSpeaker.name}</span>
+                  {:else}
+                    <span class="speaker-name">Voice Standby</span>
+                  {/if}
+                </div>
+              {/if}
               <Chat variant="watch-room" />
+              <button
+                class="speaker-lock-btn"
+                class:locked={isSpeakerLocked}
+                onclick={() => (isSpeakerLocked = !isSpeakerLocked)}
+                title={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+                aria-label={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+                aria-pressed={isSpeakerLocked}
+              >
+                {isSpeakerLocked ? '\u{1F512}\u{FE0E}' : '\u{1F513}\u{FE0E}'}
+              </button>
               <button
                 class="contacts-toggle-tab"
                 onclick={() => (isContactsOpen = !isContactsOpen)}
@@ -144,7 +175,7 @@
                 title="Exit fullscreen"
                 aria-label="Exit fullscreen"
               >
-                <span style="display: block; transform: translateY(-1px);">⛶</span>
+                ⛶
               </button>
             </div>
           </div>
@@ -159,7 +190,27 @@
     <!-- Normal sidebar chat -->
     <aside class="chat-sidebar" aria-label="Watch room chat">
       <div class="chat-wrapper-inner">
+        {#if isVoiceCallActive}
+          <div class="speaker-rect" class:locked={isSpeakerLocked}>
+            {#if activeSpeaker}
+              <span class="speaker-avatar">{activeSpeakerInitial}</span>
+              <span class="speaker-name">{activeSpeaker.name}</span>
+            {:else}
+              <span class="speaker-name">Voice Standby</span>
+            {/if}
+          </div>
+        {/if}
         <Chat variant="watch-room" />
+        <button
+          class="speaker-lock-btn"
+          class:locked={isSpeakerLocked}
+          onclick={() => (isSpeakerLocked = !isSpeakerLocked)}
+          title={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+          aria-label={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+          aria-pressed={isSpeakerLocked}
+        >
+          {isSpeakerLocked ? '🔒' : '🔓'}
+        </button>
         <button
           class="contacts-toggle-tab"
           onclick={() => (isContactsOpen = !isContactsOpen)}
