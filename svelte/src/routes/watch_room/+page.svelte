@@ -1,6 +1,7 @@
 <script lang="ts">
   import Chat from '$lib/components/chat/Chat.svelte';
   import VideoPlayer from '$lib/components/videoPlayer/videoPlayer.svelte';
+  import * as m from '$lib/paraglide/messages.js';
   import '$lib/components/chat/css/watch-room.scss';
 
   // Exemple de données pour cette sous-page
@@ -17,13 +18,13 @@
 </script>
 
 <svelte:head>
-  <title>{film.title} - Lecture</title>
+  <title>{film.title} - {m.watchroom_page_title_suffix()}</title>
 </svelte:head>
 
 <main class="watch-page">
   <!-- Bouton de retour en haut de page -->
   <button class="back-btn" onclick={handleBack}>
-    ← Retour au catalogue
+    ← {m.watchroom_back_to_catalog()}
   </button>
 
   <div class="watch-content">
@@ -35,7 +36,7 @@
       />
     </div>
 
-    <aside class="chat-sidebar" aria-label="Chat de la watch room">
+    <aside class="chat-sidebar" aria-label={m.watchroom_chat_sidebar_label()}>
       <Chat variant="watch-room" />
     </aside>
   </div>

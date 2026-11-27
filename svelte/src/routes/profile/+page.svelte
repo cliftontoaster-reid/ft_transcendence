@@ -2,6 +2,7 @@
     import { enhance } from '$app/forms';
     import ProfileCard from '$lib/components/ProfileCard.svelte';
     import { ageBrackets, ageLabels } from '$lib/profile';
+    import * as m from '$lib/paraglide/messages.js';
     import type { ActionData, PageData } from './$types';
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -55,22 +56,23 @@
 
     $effect(() => cancelUsernameCheck);
 
-    const usernameHints: Partial<Record<UsernameStatus, string>> = {
-        checking: 'Checking…',
-        available: 'Username is available.',
-        taken: 'This username is already taken.',
-        invalid: 'Username must contain between 1 and 64 characters.'
-    };
+    function usernameHint(status: UsernameStatus): string | undefined {
+        if (status === 'checking') return m.profile_username_checking();
+        if (status === 'available') return m.profile_username_available();
+        if (status === 'taken') return m.profile_username_taken();
+        if (status === 'invalid') return m.profile_username_invalid();
+        return undefined;
+    }
 </script>
 
 <svelte:head>
-    <title>{profile.displayName} | Profile</title>
+    <title>{profile.displayName} | {m.profile_page_title_suffix()}</title>
 </svelte:head>
 
 <ProfileCard {profile}>
     {#snippet actions()}
         <button class="primary" type="button" onclick={toggleEditing}>
-            {editing ? 'Cancel' : 'Edit'}
+            {editing ? m.profile_edit_cancel() : m.profile_edit_start()}
         </button>
     {/snippet}
 
@@ -90,7 +92,7 @@
             {/if}
 
             <label>
-                Display name
+                {m.profile_edit_display_name()}
                 <input
                     name="display_name"
                     maxlength="256"
@@ -99,26 +101,26 @@
                 />
             </label>
             <label>
-                Username
+                {m.profile_edit_username()}
                 <input
                     name="username"
                     maxlength="64"
                     value={form?.values?.username ?? profile.username}
                     oninput={checkUsername}
                 />
-                {#if usernameHints[usernameStatus]}
+                {#if usernameHint(usernameStatus)}
                     <span
                         class="hint"
                         class:error={usernameStatus === 'taken' || usernameStatus === 'invalid'}
                         class:ok={usernameStatus === 'available'}
                         aria-live="polite"
                     >
-                        {usernameHints[usernameStatus]}
+                        {usernameHint(usernameStatus)}
                     </span>
                 {/if}
             </label>
             <label>
-                Avatar URL
+                {m.profile_edit_avatar_url()}
                 <input
                     name="avatar_url"
                     maxlength="2048"
@@ -126,11 +128,11 @@
                 />
             </label>
             <label>
-                Bio
+                {m.profile_edit_bio()}
                 <textarea name="bio" maxlength="500">{form?.values?.bio ?? profile.bio}</textarea>
             </label>
             <label>
-                Age bracket
+                {m.profile_age_bracket_label()}
                 <select name="age">
                     {#each ageBrackets as bracket (bracket)}
                         <option
@@ -144,7 +146,7 @@
             </label>
 
             <div class="form-actions">
-                <button class="primary" type="submit">Save</button>
+                <button class="primary" type="submit">{m.profile_edit_save()}</button>
             </div>
         </form>
     {/if}

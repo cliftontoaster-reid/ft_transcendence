@@ -1,5 +1,6 @@
 <script lang="ts">
 	import EmojiPicker from './EmojiPicker.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let {
 		inputMessage = $bindable(''),
@@ -53,9 +54,9 @@
 	<input
 		type="text"
 		bind:value={inputMessage}
-		placeholder={isDirectMessage && channelName !== 'Chat général'
-			? `Message à ${channelName}...`
-			: 'Écrire un message...'}
+		placeholder={isDirectMessage
+			? m.chat_message_placeholder_dm({ channel: channelName })
+			: m.chat_message_placeholder_default()}
 		autocomplete="off"
 		onfocus={onCloseEmojiPicker}
 	/>
@@ -63,8 +64,8 @@
 		bind:this={emojiToggleElement}
 		class="emoji-toggle"
 		type="button"
-		aria-label="Ouvrir les emojis"
-		title="Ouvrir les emojis"
+		aria-label={m.chat_open_emojis_label()}
+		title={m.chat_open_emojis_title()}
 		aria-expanded={isEmojiPickerOpen}
 		aria-controls={isEmojiPickerOpen ? 'chat-emoji-picker' : undefined}
 		onclick={onToggleEmojiPicker}
@@ -72,7 +73,7 @@
 		☺
 	</button>
 	<button type="submit" disabled={!isConnected || isEmojiPickerOpen || !inputMessage.trim()}>
-		Send
+		{m.chat_send_button()}
 	</button>
 </form>
 

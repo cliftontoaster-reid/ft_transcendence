@@ -1,4 +1,6 @@
 <script lang="ts">
+  import * as m from '$lib/paraglide/messages.js';
+
   let { searchQuery = $bindable('') }: { searchQuery: string } = $props();
 </script>
 
@@ -6,7 +8,7 @@
   <div class="search-field">
     <input
       type="text"
-      placeholder="Search colors or summaries..."
+      placeholder={m.search_placeholder()}
       bind:value={searchQuery}
     />
     <svg

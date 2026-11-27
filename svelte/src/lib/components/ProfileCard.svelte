@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { ageLabels, type Profile } from '$lib/profile';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let {
 		profile,
@@ -23,14 +24,14 @@
 			{#if profile.avatarUrl}
 				<img class="avatar" src={profile.avatarUrl} alt={profile.displayName} />
 			{:else}
-				<div class="avatar avatar-fallback" aria-label="Avatar">
+				<div class="avatar avatar-fallback" aria-label={m.profile_avatar_label()}>
 					{profile.displayName.slice(0, 1).toUpperCase()}
 				</div>
 			{/if}
 
 			<div class="profile-meta">
 				<div class="identity">
-					<span class="eyebrow">Account</span>
+					<span class="eyebrow">{m.profile_account_eyebrow()}</span>
 					<h1>{profile.displayName}</h1>
 					{#if profile.username}
 						<p class="username">@{profile.username}</p>
@@ -49,23 +50,23 @@
 
 		<div class="content-grid">
 			<section class="panel full-width">
-				<h2>Bio</h2>
+				<h2>{m.profile_bio_title()}</h2>
 				<p>{profile.bio}</p>
 			</section>
 
 			<section class="panel full-width">
-				<h2>Information</h2>
+				<h2>{m.profile_information_title()}</h2>
 				<ul class="info-list">
 					<li>
-						<span>ID</span>
+						<span>{m.profile_id_label()}</span>
 						<strong>{profile.id}</strong>
 					</li>
 					<li>
-						<span>Username</span>
-						<strong>{profile.username || '—'}</strong>
+						<span>{m.profile_username_label()}</span>
+						<strong>{profile.username || m.profile_empty_value()}</strong>
 					</li>
 					<li>
-						<span>Age bracket</span>
+						<span>{m.profile_age_bracket_label()}</span>
 						<strong>{ageLabels[profile.age]}</strong>
 					</li>
 				</ul>

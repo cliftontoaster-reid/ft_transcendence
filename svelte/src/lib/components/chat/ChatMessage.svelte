@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { ChatMessage as ChatMessageData } from '$lib/chat/store.svelte';
+	import { getLocale } from '$lib/paraglide/runtime.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import EmojiPicker from './EmojiPicker.svelte';
 
 	let {
@@ -28,16 +30,22 @@
 	}
 
 	const pickerId = $derived(`reaction-emoji-picker-${message.id}`);
+	const dateLocale = $derived.by(() => {
+		const locale = getLocale();
+		if (locale === 'fr') return 'fr-FR';
+		if (locale === 'es') return 'es-ES';
+		return 'en-US';
+	});
 </script>
 
 <div class="message" class:user={isOwn} class:other={!isOwn} class:edited={message.edited}>
 	<span class="sender">{message.senderName}</span>
 	<p class="message-text">{message.text}</p>
 	{#if message.edited}
-		<span class="edited-badge">édité</span>
+		<span class="edited-badge">{m.chat_message_edited_badge()}</span>
 	{/if}
 	<span class="timestamp">
-		{message.timestamp.toLocaleString('fr-FR', {
+		{message.timestamp.toLocaleString(dateLocale, {
 			day: '2-digit',
 			month: '2-digit',
 			year: 'numeric',
@@ -49,15 +57,20 @@
 		<button
 			bind:this={reactionButton}
 			type="button"
-			aria-label="Choisir une réaction"
-			title="Réagir"
+			aria-label={m.chat_message_reaction_choose_label()}
+			title={m.chat_message_react_title()}
 			aria-expanded={isEmojiPickerOpen}
 			aria-controls={isEmojiPickerOpen ? pickerId : undefined}
 			onclick={onToggleEmojiPicker}
 		>
 			☺
 		</button>
-		<button type="button" aria-label="Répondre à ce message" title="Répondre" onclick={onReply}>
+		<button
+			type="button"
+			aria-label={m.chat_message_reply_label()}
+			title={m.chat_message_reply_title()}
+			onclick={onReply}
+		>
 			↩
 		</button>
 	</div>

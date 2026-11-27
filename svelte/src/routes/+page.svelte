@@ -25,27 +25,28 @@
   import Overview from '$lib/components/Overview.svelte';
   import { colors } from '$lib/colors';
   import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
+  import * as m from '$lib/paraglide/messages.js';
   import '$lib/components/chat/css/home.scss';
 
   const carouselCategories = [
     {
-      title: 'Warm colors',
+      title: m.home_category_warm_colors(),
       slugs: ['red', 'orange', 'yellow', 'crimson', 'coral', 'peach', 'gold', 'amber'],
     },
     {
-      title: 'Cool colors',
+      title: m.home_category_cool_colors(),
       slugs: ['blue', 'cyan', 'teal', 'sky-blue', 'turquoise', 'navy', 'indigo'],
     },
     {
-      title: 'Green shades',
+      title: m.home_category_green_shades(),
       slugs: ['green', 'lime', 'olive', 'mint', 'emerald', 'forest-green'],
     },
     {
-      title: 'Neutral colors',
+      title: m.home_category_neutral_colors(),
       slugs: ['slate-gray', 'stone-gray', 'brown', 'white', 'black', 'beige', 'cream', 'silver'],
     },
     {
-      title: 'Purple and pink',
+      title: m.home_category_purple_pink(),
       slugs: ['purple', 'pink', 'violet', 'lavender', 'magenta'],
     },
   ].map((category) => ({
@@ -84,8 +85,8 @@
       <div class="home-content">
         <section class="overview-section">
           <Overview
-            title="Titre"
-            imageUrl="https://picsum.photos/1280/720"
+            title={m.home_overview_title()}
+            imageUrl="/overview.svg"
             playHref="/watch_room"
             onPrimaryClick={() => {}}
             onSecondaryClick={() => {}}
@@ -104,7 +105,7 @@
     </div>
   {/if}
 
-  <section class="browse-section" aria-label="Browse colors">
+  <section class="browse-section" aria-label={m.home_browse_colors_label()}>
     {#if isSearching}
       <div
         class="grid-container"

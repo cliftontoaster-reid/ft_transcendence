@@ -14,6 +14,7 @@
 	import { chatStore, type ChatMessage } from '$lib/chat/store.svelte';
 	import MessageList from './MessageList.svelte';
 	import MessageComposer from './MessageComposer.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	// onMount et onDestroy sont des fonctions du cycle de vie de Svelte qui permettent d'exécuter du code
 	//  lorsque le composant est monté ou détruit.
 	import { onMount, onDestroy } from 'svelte';
@@ -49,8 +50,8 @@
 	const knownUsers = $derived(chatStore.knownUsersList);
 	const currentChannelName = $derived(
 		chatStore.currentChannelId === 'global'
-			? 'Chat général'
-			: chatStore.currentChannelId?.replace('dm:', '') || 'Chat général'
+			? m.chat_general_channel_name()
+			: chatStore.currentChannelId?.replace('dm:', '') || m.chat_general_channel_name()
 	);
 	const isDM = $derived(chatStore.currentChannelId?.startsWith('dm:') ?? false);
 	const isConnected = $derived(chatStore.isConnected);
@@ -65,7 +66,7 @@
 		userId[8] = (userId[8] & 0x3f) | 0x80;
 
 		try {
-			await chatStore.connect(userId, 'demo-token', 'Moi');
+			await chatStore.connect(userId, 'demo-token', m.chat_me_name());
 			isInitialized = true;
 
 			// If we have a direct message contact, start DM
@@ -152,7 +153,7 @@ La barre latérale des contacts affiche les utilisateurs connus et permet de dé
 	class:connected={isConnected}
 	class:watch-room={variant === 'watch-room'}
 >
-	<section class="conversation" aria-label="Conversation">
+	<section class="conversation" aria-label={m.chat_conversation_label()}>
 		<div class="chat-header">
 			<span class="status-dot" class:connected={isConnected}></span>
 			{#if isDM}
@@ -160,7 +161,7 @@ La barre latérale des contacts affiche les utilisateurs connus et permet de dé
 					class="back-button"
 					type="button"
 					onclick={handleBackToGlobal}
-					aria-label="Retour au chat général"
+					aria-label={m.chat_back_to_global_label()}
 				>
 					←
 				</button>

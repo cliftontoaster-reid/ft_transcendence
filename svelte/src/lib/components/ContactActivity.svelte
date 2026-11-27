@@ -1,4 +1,6 @@
 <script lang="ts">
+  import * as m from '$lib/paraglide/messages.js';
+
   let {
     contact,
     onClose
@@ -9,29 +11,29 @@
 </script>
 
 <div class="modal-backdrop">
-  <button class="backdrop-close" type="button" aria-label="Close activity" onclick={onClose}></button>
+  <button class="backdrop-close" type="button" aria-label={m.contacts_activity_close_label()} onclick={onClose}></button>
   <dialog
     open
     class="activity-dialog"
     aria-labelledby="activity-title"
   >
-    <button class="close-button" type="button" aria-label="Close activity" onclick={onClose}>
+    <button class="close-button" type="button" aria-label={m.contacts_activity_close_label()} onclick={onClose}>
       &times;
     </button>
-    <h2 id="activity-title">{contact.name}'s activity</h2>
+    <h2 id="activity-title">{m.contacts_activity_title({ name: contact.name })}</h2>
 
     <section class="activity-section">
-      <h3>Currently watching</h3>
-      <p>No current activity to show.</p>
+      <h3>{m.contacts_activity_currently_watching()}</h3>
+      <p>{m.contacts_activity_none_current()}</p>
     </section>
 
     <section class="activity-section">
-      <h3>Recent activity</h3>
-      <p>Activity details are not available yet.</p>
+      <h3>{m.contacts_activity_recent()}</h3>
+      <p>{m.contacts_activity_unavailable()}</p>
     </section>
 
     <p class="privacy-note">
-      Activity is only visible when allowed by {contact.name}'s privacy settings.
+      {m.contacts_activity_privacy_note({ name: contact.name })}
     </p>
   </dialog>
 </div>

@@ -21,10 +21,11 @@
 	import type { Pathname } from '$app/types';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import SearchBar from '$lib/SearchBar.svelte';
 	import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
-	import * as m from '$lib/paraglide/messages';
+	import { locales, localizeHref, setLocale, toLocale, getLocale } from '$lib/paraglide/runtime.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import './layout.scss';
 	import favicon from '$lib/assets/favicon.svg';
 	import '@fontsource/hanken-grotesk/600.css';
@@ -38,6 +39,16 @@
 
 	let menuOpen = $state(false);
 	let menuRef: HTMLDivElement | undefined = $state();
+	let activeLocale = $state(getLocale());
+
+	function localeFromPathname(pathname: string) {
+		const firstSegment = pathname.split('/').filter(Boolean)[0];
+		return toLocale(firstSegment) ?? getLocale();
+	}
+
+	$effect(() => {
+		activeLocale = localeFromPathname(page.url.pathname);
+	});
 
 	function handleWindowClick(e: MouseEvent) {
 		if (menuOpen && menuRef && !menuRef.contains(e.target as Node)) {
@@ -61,29 +72,29 @@
 <!-- Navbar -->
 <header class="site-header">
 	<nav class="nav-container">
-		<a href="/" class="logo" data-sveltekit-reload>Dyonisus</a>
+		<a href={resolve(localizeHref('/') as Pathname)} class="logo" data-sveltekit-reload>Dyonisus</a>
 		<div class="nav-search">
 			<SearchBar bind:searchQuery={searchQuery.value} />
 		</div>
 	<div class="nav-links">
-		<a href="/" class="nav-item" data-sveltekit-reload title={m.nav_home()}>
+		<a href={resolve(localizeHref('/') as Pathname)} class="nav-item" data-sveltekit-reload title={m.nav_home({}, { locale: activeLocale })}>
 			<Home class="icon" />
 		</a>
-		<a href="/movies" class="nav-item" title={m.nav_movies()}>
+		<a href={resolve(localizeHref('/movies') as Pathname)} class="nav-item" title={m.nav_movies({}, { locale: activeLocale })}>
 			<Movie class="icon" />
 		</a>
-		<a href="/watch_room" class="nav-item" title={m.nav_watch_room()}>
+		<a href={resolve(localizeHref('/watch_room') as Pathname)} class="nav-item" title={m.nav_watch_room({}, { locale: activeLocale })}>
 			<LiveTv class="icon" />
 		</a>
-		<a href="/profile" class="nav-item" title={m.nav_profile()}>
+		<a href={resolve(localizeHref('/profile') as Pathname)} class="nav-item" title={m.nav_profile({}, { locale: activeLocale })}>
 			<Person class="icon" />
 		</a>
 		<div class="settings-menu" bind:this={menuRef}>
 			<button
 				type="button"
 				class="nav-item settings-btn"
-				title={m.nav_settings()}
-				aria-label={m.nav_settings()}
+				title={m.nav_settings({}, { locale: activeLocale })}
+				aria-label={m.nav_settings({}, { locale: activeLocale })}
 				aria-expanded={menuOpen}
 				aria-haspopup="menu"
 				onclick={() => (menuOpen = !menuOpen)}
@@ -92,14 +103,20 @@
 			</button>
 
 			{#if menuOpen}
-				<div class="settings-dropdown" role="menu" aria-label={m.nav_language()}>
-					<span class="dropdown-title">{m.nav_language()}</span>
+				<div class="settings-dropdown" role="menu" aria-label={m.nav_language({}, { locale: activeLocale })}>
+					<span class="dropdown-title">{m.nav_language({}, { locale: activeLocale })}</span>
 					{#each locales as locale (locale)}
 						<a
 							href={resolve(localizeHref(page.url.pathname, { locale }) as Pathname)}
 							role="menuitem"
 							class="dropdown-item"
-							onclick={() => (menuOpen = false)}
+							onclick={(event) => {
+								event.preventDefault();
+								activeLocale = locale;
+								setLocale(locale, { reload: false });
+								menuOpen = false;
+								goto(resolve(localizeHref(page.url.pathname, { locale }) as Pathname));
+							}}
 						>
 							{locale}
 						</a>
@@ -107,17 +124,19 @@
 				</div>
 			{/if}
 		</div>
-		<a href="/login" class="login-link">{m.nav_login()}</a>
+		<a href={resolve(localizeHref('/login') as Pathname)} class="login-link">{m.nav_login({}, { locale: activeLocale })}</a>
 	</div>
 	</nav>
 </header>
 
 <main class="site-main">
-	{@render children()}
+	{#key activeLocale}
+		{@render children()}
+	{/key}
 </main>
 
 <footer class="site-footer">
-	<p>© 2026 - All rights reserved.</p>
+	<p>{m.footer_rights({}, { locale: activeLocale })}</p>
 </footer>
 
 <div style="display:none">

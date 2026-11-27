@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { resolve } from '$app/paths';
 	import { colors } from '$lib/colors';
+	import * as m from '$lib/paraglide/messages.js';
 
 	const slug = $derived($page.params.slug);
 	const colorItem = $derived(colors.find((c) => c.slug === slug));
@@ -15,8 +16,8 @@
 		<h1 class="color-title">{colorItem.title}</h1>
 		<p class="color-summary">{colorItem.summary}</p>
 	{:else}
-		<h1>Color not found</h1>
-		<a href={backUrl} class="back-link">Back to colors</a>
+		<h1>{m.colors_not_found_title()}</h1>
+		<a href={backUrl} class="back-link">{m.colors_back_to_list()}</a>
 	{/if}
 </main>
 

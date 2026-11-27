@@ -1,10 +1,12 @@
 <script>
+  import * as m from '$lib/paraglide/messages.js';
+
   let { 
-    title = 'Movie Title',
-    description = 'Movie description',
+    title = m.overview_default_title(),
+    description = m.overview_default_description(),
     imageUrl = 'https://picsum.photos/1280/720',
-    primaryActionText = 'Play',
-    secondaryActionText = 'More infos',
+    primaryActionText = m.overview_default_primary_action(),
+    secondaryActionText = m.overview_default_secondary_action(),
     playHref = '/watch_room',
     onPrimaryClick,
     onSecondaryClick

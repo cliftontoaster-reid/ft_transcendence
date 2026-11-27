@@ -3,6 +3,7 @@
 	//  Il est utilisé par le composant ChatInput.svelte 
 	// pour permettre aux utilisateurs de choisir des emojis à insérer dans leurs messages.
 	import { searchChatEmojis } from '$lib/chat/emoji';
+	import * as m from '$lib/paraglide/messages.js';
 	import { tick } from 'svelte';
 
 	let {
@@ -67,14 +68,14 @@
 		class="emoji-picker"
 		popover="manual"
 		role="group"
-		aria-label="Choisir un emoji"
+		aria-label={m.chat_emoji_picker_label()}
 	>
 		<input
 			class="emoji-search"
 			type="search"
 			bind:value={query}
-			placeholder="Search emoji..."
-			aria-label="Search emoji"
+			placeholder={m.chat_emoji_search_placeholder()}
+			aria-label={m.chat_emoji_search_label()}
 			autocomplete="off"
 		/>
 		{#if visibleEmojis.length > 0}
@@ -83,7 +84,7 @@
 					<button
 						class="emoji-option"
 						type="button"
-						aria-label={`Insert ${emoji.glyph}`}
+						aria-label={m.chat_emoji_insert_label({ emoji: emoji.glyph })}
 						onclick={() => onSelect(emoji.glyph)}
 					>
 						{emoji.glyph}
@@ -91,7 +92,7 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="emoji-empty">No emoji found</p>
+			<p class="emoji-empty">{m.chat_emoji_not_found()}</p>
 		{/if}
 	</div>
 {/if}

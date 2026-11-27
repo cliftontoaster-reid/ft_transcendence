@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { passwordLogin, passwordRegister, providerLoginUrl } from '$lib/auth';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let mode = $state<'login' | 'register'>('login');
 	let username = $state('');
@@ -13,7 +14,7 @@
 	async function submit() {
 		error = '';
 		if (mode === 'register' && password !== passwordConfirmation) {
-			error = 'Les mots de passe ne correspondent pas.';
+			error = m.login_error_password_mismatch();
 			return;
 		}
 		loading = true;
@@ -26,7 +27,7 @@
 			}
 			await goto('/');
 		} catch (cause) {
-			error = cause instanceof Error ? cause.message : 'La connexion a échoué.';
+			error = cause instanceof Error ? cause.message : m.login_error_failed();
 		} finally {
 			loading = false;
 		}
@@ -34,30 +35,30 @@
 </script>
 
 <svelte:head>
-	<title>{mode === 'login' ? 'Connexion' : 'Créer un compte'} | Dionysus</title>
+	<title>{mode === 'login' ? m.login_title_sign_in() : m.login_title_create_account()} | Dionysus</title>
 </svelte:head>
 
 <main class="login-page">
 	<section class="login-card" aria-labelledby="login-title">
 		<p class="eyebrow">Dionysus</p>
-		<h1 id="login-title">{mode === 'login' ? 'Bon retour parmi nous' : 'Créer votre compte'}</h1>
+		<h1 id="login-title">{mode === 'login' ? m.login_heading_welcome_back() : m.login_heading_create_account()}</h1>
 		<p class="intro">
-			{mode === 'login' ? 'Connectez-vous rapidement.' : 'Rejoignez Dionysus en quelques secondes.'}
+			{mode === 'login' ? m.login_intro_sign_in() : m.login_intro_register()}
 		</p>
 
 		<div class="social-login">
 			<a class="social-button" href={providerLoginUrl('google')}>
 				<span class="google-icon" aria-hidden="true">G</span>
-				Continuer avec Google
+				{m.login_continue_google()}
 			</a>
 			<a class="social-button" href={providerLoginUrl('discord')}>
 				<span class="discord-icon" aria-hidden="true">◈</span>
-				Continuer avec Discord
+				{m.login_continue_discord()}
 			</a>
 		</div>
 
 		<div class="separator">
-			<span>{mode === 'login' ? 'ou avec votre compte Dionysus' : 'ou inscrivez-vous avec'}</span>
+			<span>{mode === 'login' ? m.login_separator_sign_in() : m.login_separator_register()}</span>
 		</div>
 
 		<form
@@ -67,7 +68,7 @@
 			}}
 		>
 			{#if mode === 'register'}
-				<label for="username">Nom d’utilisateur</label>
+				<label for="username">{m.login_label_username()}</label>
 				<input
 					id="username"
 					bind:value={username}
@@ -79,12 +80,12 @@
 				/>
 			{/if}
 
-			<label for="email">Adresse email</label>
+			<label for="email">{m.login_label_email()}</label>
 			<input id="email" bind:value={email} type="email" autocomplete="email" required />
 
 			<div class="password-label">
-				<label for="password">Mot de passe</label>
-				{#if mode === 'login'}<a href="/login">Mot de passe oublié ?</a>{/if}
+				<label for="password">{m.login_label_password()}</label>
+				{#if mode === 'login'}<a href="/login">{m.login_forgot_password()}</a>{/if}
 			</div>
 			<input
 				id="password"
@@ -96,7 +97,7 @@
 			/>
 
 			{#if mode === 'register'}
-				<label for="password-confirmation">Confirmer le mot de passe</label>
+				<label for="password-confirmation">{m.login_label_password_confirm()}</label>
 				<input
 					id="password-confirmation"
 					bind:value={passwordConfirmation}
@@ -112,12 +113,12 @@
 			{/if}
 
 			<button class="submit-button" type="submit" disabled={loading}>
-				{loading ? 'Chargement…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+				{loading ? m.login_loading() : mode === 'login' ? m.login_submit_sign_in() : m.login_submit_create_account()}
 			</button>
 		</form>
 
 		<p class="signup">
-			{mode === 'login' ? 'Vous n’avez pas encore de compte ?' : 'Vous avez déjà un compte ?'}
+			{mode === 'login' ? m.login_switch_question_no_account() : m.login_switch_question_has_account()}
 			<button
 				type="button"
 				onclick={() => {
@@ -125,7 +126,7 @@
 					error = '';
 				}}
 			>
-				{mode === 'login' ? 'Créer un compte' : 'Se connecter'}
+				{mode === 'login' ? m.login_switch_create_account() : m.login_switch_sign_in()}
 			</button>
 		</p>
 	</section>

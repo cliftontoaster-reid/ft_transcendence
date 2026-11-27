@@ -1,5 +1,6 @@
 <script lang="ts">
   import ContactActivity from '$lib/components/ContactActivity.svelte';
+  import * as m from '$lib/paraglide/messages.js';
 
   interface User {
     id: string;
@@ -35,7 +36,10 @@
     }
   });
 
-  const actions = ['Send a direct message', 'Invite to a room', 'View activity'];
+  const ACTION_DM = 'dm';
+  const ACTION_INVITE = 'invite';
+  const ACTION_ACTIVITY = 'activity';
+  const actions = [ACTION_DM, ACTION_INVITE, ACTION_ACTIVITY] as const;
 
   let activeContact = $state<string | null>(null);
   let selectedAction = $state('');
@@ -57,16 +61,25 @@
     selectedAction = '';
   }
 
-  function chooseAction(action: string, contactId: string) {
+  function actionLabel(action: (typeof actions)[number]) {
+    if (action === ACTION_DM) return m.contacts_action_send_dm();
+    if (action === ACTION_INVITE) return m.contacts_action_invite_room();
+    return m.contacts_action_view_activity();
+  }
+
+  function chooseAction(action: (typeof actions)[number], contactId: string) {
     const contact = contacts.find((item) => item.id === contactId);
-    if (action === 'Send a direct message') {
+    if (action === ACTION_DM) {
       onDirectMessage?.(contactId);
       selectedAction = '';
-    } else if (action === 'View activity') {
+    } else if (action === ACTION_ACTIVITY) {
       activityContact = contact ?? null;
       selectedAction = '';
     } else {
-      selectedAction = `${action} — ${contact?.name ?? contactId} (coming soon)`;
+      selectedAction = m.contacts_action_coming_soon({
+        action: actionLabel(action),
+        name: contact?.name ?? contactId
+      });
     }
     activeContact = null;
   }
@@ -75,11 +88,11 @@
     event.preventDefault();
     const name = newContactName.trim();
     if (!name) {
-      addContactError = 'Enter a contact name.';
+      addContactError = m.contacts_error_enter_name();
       return;
     }
     if (contacts.some((contact) => contact.name.toLowerCase() === name.toLowerCase())) {
-      addContactError = 'This contact is already on your list.';
+      addContactError = m.contacts_error_duplicate();
       return;
     }
 
@@ -112,22 +125,22 @@
 {/if}
 
 <aside class="contacts-sidebar" class:embedded>
-  <section class="contacts-panel" aria-label="Contacts">
+  <section class="contacts-panel" aria-label={m.contacts_panel_label()}>
     <div class="contacts-heading">
-      <h2>Contacts</h2>
+      <h2>{m.contacts_title()}</h2>
       <div class="contact-toolbar">
         <label class="contact-filter-label">
-          <span class="visually-hidden">Filter contacts</span>
-          <select bind:value={contactFilter} aria-label="Filter contacts">
-            <option value="all">All</option>
-            <option value="online">Online</option>
-            <option value="chats">In chats</option>
+          <span class="visually-hidden">{m.contacts_filter_label()}</span>
+          <select bind:value={contactFilter} aria-label={m.contacts_filter_label()}>
+            <option value="all">{m.contacts_filter_all()}</option>
+            <option value="online">{m.contacts_filter_online()}</option>
+            <option value="chats">{m.contacts_filter_in_chats()}</option>
           </select>
         </label>
         <button
           class="add-contact-button"
           type="button"
-          aria-label="Add contact"
+          aria-label={m.contacts_add_label()}
           aria-expanded={isAddContactOpen}
           onclick={() => {
             isAddContactOpen = !isAddContactOpen;
@@ -135,20 +148,20 @@
           }}
         >
           <span aria-hidden="true">+</span>
-          <span>Add</span>
+          <span>{m.contacts_add_label_short()}</span>
         </button>
       </div>
     </div>
     {#if isAddContactOpen}
       <form class="add-contact-form" onsubmit={addContact}>
-        <label class="visually-hidden" for="new-contact-name">Contact name</label>
+        <label class="visually-hidden" for="new-contact-name">{m.contacts_contact_name_label()}</label>
         <input
           id="new-contact-name"
           bind:value={newContactName}
-          placeholder="Contact name"
+          placeholder={m.contacts_contact_name_placeholder()}
           autocomplete="off"
         />
-        <button type="submit">Add</button>
+        <button type="submit">{m.contacts_add_label_short()}</button>
         {#if addContactError}
           <p class="add-contact-error" role="alert">{addContactError}</p>
         {/if}
@@ -169,11 +182,11 @@
             <span
               class:offline={!contact.online}
               class="contact-status"
-              aria-label={contact.online ? 'Online' : 'Offline'}
+              aria-label={contact.online ? m.contacts_status_online() : m.contacts_status_offline()}
             ></span>
           </button>
           {#if activeContact === contact.id}
-            <div class="contact-actions" role="menu" aria-label={`Actions pour ${contact.name}`}>
+            <div class="contact-actions" role="menu" aria-label={m.contacts_actions_menu_label({ name: contact.name })}>
               {#each actions as action (action)}
                 <button
                   class="contact-action"
@@ -181,7 +194,7 @@
                   role="menuitem"
                   onclick={() => chooseAction(action, contact.id)}
                 >
-                  {action}
+                  {actionLabel(action)}
                 </button>
               {/each}
             </div>
