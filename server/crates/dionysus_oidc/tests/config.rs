@@ -39,3 +39,31 @@ scopes = ["openid", "profile", "email"]
     Some(&"admins".to_string())
   );
 }
+
+#[test]
+fn parses_discord_oidc_configuration() {
+  let config: toml::Value =
+    toml::from_str(include_str!("../../../config/oidc.example.toml")).unwrap();
+
+  let config: OidcConfig = config
+    .get("oidc")
+    .cloned()
+    .map(toml::Value::try_into)
+    .unwrap()
+    .unwrap();
+  let provider = config.provider.get("discord").unwrap();
+
+  assert_eq!(config.default, "discord");
+  assert_eq!(
+    provider.issuer_url,
+    Url::parse("https://discord.com").unwrap()
+  );
+  assert_eq!(provider.client_id, "REPLACE_WITH_DISCORD_CLIENT_ID");
+  assert_eq!(provider.scopes, vec!["openid", "identify"]);
+  assert_eq!(
+    provider.client_secret,
+    dionysus_oidc::model::config::SecretReference::EnvironmentVariable(
+      "DISCORD_CLIENT_SECRET".to_string()
+    )
+  );
+}
