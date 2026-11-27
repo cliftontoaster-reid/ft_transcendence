@@ -52,6 +52,42 @@ message LeaveChannel {
   dionysus.room.v1.RoomID channel_id = 1;
 }
 
+message DeleteMessage {
+  MessageID id = 1;
+  optional dionysus.room.v1.RoomID room_id = 2;
+}
+
+message MessageDeleted {
+  MessageID id = 1;
+  optional dionysus.room.v1.RoomID room_id = 2;
+  google.type.DateTime deleted_at = 3;
+}
+
+message ClientFrame {
+  oneof payload {
+    Identify identify = 1;
+    JoinChannel join = 2;
+    LeaveChannel leave = 3;
+    SendMessage send = 4;
+    EditMessage edit = 5;
+    Ping ping = 6;
+    DeleteMessage delete = 7;
+  }
+}
+
+message ServerFrame {
+  oneof payload {
+    Message message = 1;
+    MessageEdited edited = 2;
+    UserJoined joined = 3;
+    UserLeft left = 4;
+    ChannelSnapshot snapshot = 5;
+    Pong pong = 6;
+    Error error = 7;
+    MessageDeleted deleted = 8;
+  }
+}
+
 message Ping {}
 
 message Pong {}
@@ -88,25 +124,6 @@ message ChannelSnapshot {
   repeated Message recent_messages = 2;
 }
 
-message ClientFrame {
-  oneof payload {
-    Identify identify = 1;
-    JoinChannel join = 2;
-    LeaveChannel leave = 3;
-    SendMessage send = 4;
-    EditMessage edit = 5;
-    Ping ping = 6;
-  }
-}
 
-message ServerFrame {
-  oneof payload {
-    Message message = 1;
-    MessageEdited edited = 2;
-    UserJoined joined = 3;
-    UserLeft left = 4;
-    ChannelSnapshot snapshot = 5;
-    Pong pong = 6;
-    Error error = 7;
-  }
-}
+
+

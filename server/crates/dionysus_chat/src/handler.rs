@@ -117,6 +117,7 @@ async fn dispatch(
           })
           .await;
       }
+      
       // broadcast joined
       if let Some(user) = info.user {
         let frame = ServerFrame {
@@ -202,6 +203,50 @@ async fn dispatch(
       state.broadcast(&channel_id, frame).await;
       Ok(())
     }
+
+    Payload::Delete(del) => {
+      // Extract target message ID and optional room ID from the client request
+      let msg_id = del
+        .id
+        .and_then(|i| i.value)
+        .map(|u| u.value.to_vec())
+        .ok_or("missing id")?;
+      let room_id_opt = del
+        .room_id
+        .and_then(|r| r.value)
+        .map(|u| u.value.to_vec());
+
+      // Remove message/reaction in state and resolve the target channel
+      let channel_id = state
+        .delete_message(conn_id, msg_id.clone(), room_id_opt.clone())
+        .await?;
+
+      let frame = ServerFrame {
+        payload: Some(SPayload::Deleted(
+          dionysus_proto::dionysus::chat::v1::MessageDeleted {
+            id: Some(dionysus_proto::dionysus::chat::v1::MessageId {
+              value: Some(dionysus_proto::dionysus::common::v1::Uuid {
+                value: msg_id.into(),
+              }),
+            }),
+            room_id: channel_id
+              .clone()
+              .into_iter()
+              .next()
+              .map(|_| dionysus_proto::dionysus::room::v1::RoomId {
+                value: Some(dionysus_proto::dionysus::common::v1::Uuid {
+                  value: channel_id.clone().into(),
+                }),
+              }),
+            deleted_at: None,
+          },
+        )),
+      };
+      // Broadcast to the channel so all subscribers remove the message/reaction
+      state.broadcast(&channel_id, frame).await;
+      Ok(())
+    }
+
     Payload::Ping(_) => {
       let conn_tx = {
         let st = state.inner.read().await;

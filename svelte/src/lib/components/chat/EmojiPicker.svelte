@@ -1,21 +1,74 @@
 <script lang="ts">
+	// ce fichier sert à afficher un sélecteur d'emoji dans le chat.
+	//  Il est utilisé par le composant ChatInput.svelte 
+	// pour permettre aux utilisateurs de choisir des emojis à insérer dans leurs messages.
 	import { searchChatEmojis } from '$lib/chat/emoji';
+	import { tick } from 'svelte';
 
 	let {
 		open,
+		anchor,
+		pickerId = 'chat-emoji-picker',
 		query = $bindable(''),
-		onSelect
+		onSelect,
+		onClose
 	}: {
 		open: boolean;
+		anchor: HTMLElement | null;
+		pickerId?: string;
 		query?: string;
 		onSelect: (emoji: string) => void;
+		onClose: () => void;
 	} = $props();
 
+	let pickerElement = $state<HTMLDivElement | null>(null);
 	const visibleEmojis = $derived(searchChatEmojis(query));
+
+	function handleOutsideClick(event: MouseEvent) {
+		if (!open || !(event.target instanceof Node)) return;
+		if (pickerElement?.contains(event.target) || anchor?.contains(event.target)) return;
+
+		onClose();
+	}
+
+	$effect(() => {
+		if (!open || !anchor) return;
+
+		void tick().then(() => {
+			const picker = pickerElement;
+			if (!picker || !anchor || !open) return;
+			if (!picker.matches(':popover-open')) picker.showPopover();
+
+			const anchorRect = anchor.getBoundingClientRect();
+			const pickerRect = picker.getBoundingClientRect();
+			const gap = 8;
+			const topAbove = anchorRect.top - pickerRect.height - gap;
+			const top =
+				topAbove >= gap
+					? topAbove
+					: Math.min(anchorRect.bottom + gap, window.innerHeight - pickerRect.height - gap);
+			const left = Math.max(
+				gap,
+				Math.min(anchorRect.right - pickerRect.width, window.innerWidth - pickerRect.width - gap)
+			);
+
+			picker.style.top = `${top}px`;
+			picker.style.left = `${left}px`;
+		});
+	});
 </script>
 
+<svelte:window onclick={handleOutsideClick} />
+
 {#if open}
-	<div id="chat-emoji-picker" class="emoji-picker" role="group" aria-label="Choisir un emoji">
+	<div
+		bind:this={pickerElement}
+		id={pickerId}
+		class="emoji-picker"
+		popover="manual"
+		role="group"
+		aria-label="Choisir un emoji"
+	>
 		<input
 			class="emoji-search"
 			type="search"
@@ -45,10 +98,12 @@
 
 <style>
 	.emoji-picker {
-		position: absolute;
-		bottom: calc(100% + 8px);
-		left: 8px;
-		z-index: 10;
+		position: fixed;
+		inset: auto;
+		top: 0;
+		left: 0;
+		z-index: 1000;
+		margin: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
