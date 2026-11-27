@@ -1,14 +1,11 @@
 <script lang="ts">
-  import Chat from '$lib/components/chat/Chat.svelte';
-  import VideoPlayer from '$lib/components/videoPlayer/videoPlayer.svelte';
-  import '$lib/components/chat/css/watch-room.scss';
+   import Chat from '$lib/components/chat/Chat.svelte';
+   import VideoPlayer from '$lib/components/videoPlayer/videoPlayer.svelte';
+   import '$lib/components/chat/css/watch-room.scss';
+   import type { PageData } from './$types';
 
-  // Exemple de données pour cette sous-page
-  const film = {
-    title: "Sintel",
-    src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-    poster: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg"
-  };
+  let { data }: { data: PageData } = $props();
+  const film = $derived(data.film);
 
   function handleBack() {
     // Permet de retourner à la page précédente
