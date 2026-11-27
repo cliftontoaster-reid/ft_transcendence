@@ -26,7 +26,7 @@
 	} = $props();
 
 	let emojiPickerElement: HTMLDivElement | null = null;
-	let emojiToggleElement: HTMLButtonElement | null = null;
+	let emojiToggleElement = $state<HTMLButtonElement | null>(null);
 
 	function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
@@ -38,20 +38,17 @@
 		inputMessage = '';
 	}
 
-	function handleWindowClick(event: MouseEvent) {
-		if (!isEmojiPickerOpen || !(event.target instanceof Node)) return;
-		if (emojiPickerElement?.contains(event.target) || emojiToggleElement?.contains(event.target))
-			return;
-
-		onCloseEmojiPicker();
-	}
 </script>
-
-<svelte:window onclick={handleWindowClick} />
 
 <form class="chat-input-form" onsubmit={handleSubmit}>
 	<div bind:this={emojiPickerElement}>
-		<EmojiPicker open={isEmojiPickerOpen} bind:query={emojiSearchQuery} onSelect={onEmojiSelect} />
+		<EmojiPicker
+			open={isEmojiPickerOpen}
+			anchor={emojiToggleElement}
+			bind:query={emojiSearchQuery}
+			onSelect={onEmojiSelect}
+			onClose={onCloseEmojiPicker}
+		/>
 	</div>
 	<input
 		type="text"

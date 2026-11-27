@@ -249,12 +249,6 @@
     font-size: 0.9rem;
   }
 
-  .contacts-title {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
   .contacts-heading {
     display: grid;
     justify-items: start;

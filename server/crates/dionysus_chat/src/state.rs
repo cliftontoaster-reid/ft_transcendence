@@ -270,6 +270,55 @@ impl AppState {
     Err("message not found".to_string())
   }
 
+  pub async fn delete_message(
+    &self,
+    conn_id: ConnId,
+    msg_id: Vec<u8>,
+    room_id_opt: Option<Vec<u8>>,
+  ) -> Result<Vec<u8>, String> {
+    let mut state = self.inner.write().await;
+    let user_id = state
+      .connections
+      .get(&conn_id)
+      .and_then(|c| c.user_id.clone())
+      .ok_or_else(|| "not identified".to_string())?;
+
+    let channels_iter: Box<dyn Iterator<Item = &mut Channel> + '_> = match room_id_opt {
+      Some(ref rid) => Box::new(state.channels.get_mut(rid).into_iter()),
+      None => Box::new(state.channels.values_mut()),
+    };
+
+    for channel in channels_iter {
+      if let Some(pos) = channel.history.iter().position(|m| {
+        m.id
+          .as_ref()
+          .and_then(|i| i.value.as_ref())
+          .map(|u| u.value.as_slice())
+          == Some(msg_id.as_slice())
+      }) {
+        let sender = channel.history[pos]
+          .sender_id
+          .as_ref()
+          .and_then(|s| s.value.as_ref())
+          .map(|u| u.value.as_slice());
+        if sender != Some(user_id.as_slice()) {
+          return Err("not owner".to_string());
+        }
+        channel.history.remove(pos);
+        let channel_id = channel
+          .room
+          .id
+          .as_ref()
+          .and_then(|i| i.value.as_ref())
+          .map(|u| u.value.to_vec())
+          .unwrap_or_default();
+        return Ok(channel_id);
+      }
+    }
+
+    Err("message not found".to_string())
+  }
+
   pub async fn subscribers(&self, channel_id: &[u8]) -> Vec<mpsc::Sender<ServerFrame>> {
     let state = self.inner.read().await;
     state

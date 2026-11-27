@@ -37,6 +37,11 @@ function uuidToString(bytes: Uint8Array): string {
 		.join('');
 }
 
+function stringToUuid(value: string): Uint8Array | undefined {
+	if (!/^[0-9a-fA-F]+$/.test(value) || value.length % 2 !== 0) return undefined;
+	return Uint8Array.from(value.match(/.{2}/g)?.map((pair) => parseInt(pair, 16)) || []);
+}
+
 function userIdToString(userId: UserID | undefined): string {
 	return userId?.value?.value ? uuidToString(userId.value.value) : 'unknown';
 }
@@ -343,7 +348,7 @@ export class ChatStore {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	});
 
-	sendMessage(text: string) {
+	sendMessage(text: string, repliesTo?: string) {
 		if (!this.currentChannelId || !text.trim()) return;
 
 		const channelId =
@@ -351,7 +356,21 @@ export class ChatStore {
 				? new TextEncoder().encode('global')
 				: new TextEncoder().encode(this.currentChannelId);
 
-		this.client.sendMessage(channelId, text.trim());
+		const repliesToBytes = repliesTo ? stringToUuid(repliesTo) : undefined;
+		this.client.sendMessage(channelId, text.trim(), repliesToBytes);
+	}
+
+	deleteMessage(messageId: string) {
+		if (!this.currentChannelId) return;
+
+		const channelId =
+			this.currentChannelId === 'global'
+				? new TextEncoder().encode('global')
+				: new TextEncoder().encode(this.currentChannelId);
+		const messageIdBytes = stringToUuid(messageId);
+		if (!messageIdBytes) return;
+
+		this.client.deleteMessage(messageIdBytes, channelId);
 	}
 
 	joinChannel(channelId: string) {

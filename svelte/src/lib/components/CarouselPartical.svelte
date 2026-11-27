@@ -48,7 +48,6 @@
   aria-label={`View summary for ${title}`}
   draggable="false"
   onpointerdown={handlePointerDown}
-  onpointermove={handlePointerMove}
   onclick={handleClick}
 >
   <div

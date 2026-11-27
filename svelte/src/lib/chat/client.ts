@@ -5,6 +5,7 @@ import type {
 	JoinChannel,
 	SendMessage,
 	EditMessage,
+	DeleteMessage,
 	Ping,
 	Message,
 	MessageEdited,
@@ -23,6 +24,7 @@ import {
 	SendMessageSchema,
 	LeaveChannelSchema,
 	EditMessageSchema,
+	DeleteMessageSchema,
 	PingSchema,
 	MessageIDSchema
 } from '$lib/proto/dionysus/chat/v1/message_pb';
@@ -173,14 +175,31 @@ export class ChatClient {
 		this.sendFrame(frame);
 	}
 
-	sendMessage(channelId: Uint8Array, text: string, repliesTo?: { value?: UUID }) {
+	sendMessage(channelId: Uint8Array, text: string, repliesTo?: Uint8Array) {
 		const send: SendMessage = create(SendMessageSchema, {
 			roomId: create(RoomIDSchema, { value: create(UUIDSchema, { value: channelId }) }),
 			message: text,
-			repliesTo: repliesTo ? create(MessageIDSchema, repliesTo) : undefined
+			repliesTo: repliesTo
+				? create(MessageIDSchema, {
+					value: create(UUIDSchema, { value: repliesTo })
+				})
+				: undefined
 		});
 		const frame: ClientFrame = create(ClientFrameSchema, {
 			payload: { case: 'send', value: send }
+		});
+		this.sendFrame(frame);
+	}
+
+	deleteMessage(messageId: Uint8Array, channelId?: Uint8Array) {
+		const del: DeleteMessage = create(DeleteMessageSchema, {
+			id: create(MessageIDSchema, { value: create(UUIDSchema, { value: messageId }) }),
+			roomId: channelId
+				? create(RoomIDSchema, { value: create(UUIDSchema, { value: channelId }) })
+				: undefined
+		});
+		const frame: ClientFrame = create(ClientFrameSchema, {
+			payload: { case: 'delete', value: del }
 		});
 		this.sendFrame(frame);
 	}

@@ -1,19 +1,33 @@
 <script lang="ts">
 	import type { ChatMessage as ChatMessageData } from '$lib/chat/store.svelte';
+	import EmojiPicker from './EmojiPicker.svelte';
 
 	let {
 		message,
 		isOwn,
 		isEmojiPickerOpen,
 		onToggleEmojiPicker,
-		onReply
+		onReply,
+		onReact
 	}: {
 		message: ChatMessageData;
 		isOwn: boolean;
 		isEmojiPickerOpen: boolean;
 		onToggleEmojiPicker: () => void;
 		onReply: () => void;
+		onReact: (emoji: string) => void;
 	} = $props();
+
+	let reactionButton = $state<HTMLButtonElement | null>(null);
+	let emojiSearchQuery = $state('');
+
+	function selectReaction(emoji: string) {
+		onReact(emoji);
+		onToggleEmojiPicker();
+		emojiSearchQuery = '';
+	}
+
+	const pickerId = $derived(`reaction-emoji-picker-${message.id}`);
 </script>
 
 <div class="message" class:user={isOwn} class:other={!isOwn} class:edited={message.edited}>
@@ -23,15 +37,22 @@
 		<span class="edited-badge">édité</span>
 	{/if}
 	<span class="timestamp">
-		{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+		{message.timestamp.toLocaleString('fr-FR', {
+			day: '2-digit',
+			month: '2-digit',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		})}
 	</span>
 	<div class="message-actions">
 		<button
+			bind:this={reactionButton}
 			type="button"
-			aria-label="Ouvrir les emojis"
+			aria-label="Choisir une réaction"
 			title="Réagir"
 			aria-expanded={isEmojiPickerOpen}
-			aria-controls={isEmojiPickerOpen ? 'chat-emoji-picker' : undefined}
+			aria-controls={isEmojiPickerOpen ? pickerId : undefined}
 			onclick={onToggleEmojiPicker}
 		>
 			☺
@@ -40,6 +61,14 @@
 			↩
 		</button>
 	</div>
+	<EmojiPicker
+		open={isEmojiPickerOpen}
+		anchor={reactionButton}
+		{pickerId}
+		bind:query={emojiSearchQuery}
+		onSelect={selectReaction}
+		onClose={onToggleEmojiPicker}
+	/>
 </div>
 
 <style>
