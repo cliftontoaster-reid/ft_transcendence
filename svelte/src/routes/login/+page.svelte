@@ -24,7 +24,7 @@
 			} else {
 				await passwordLogin(email, password);
 			}
-			await goto('/');
+			await goto('/', { invalidateAll: true });
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : 'La connexion a échoué.';
 		} finally {

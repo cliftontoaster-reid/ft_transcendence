@@ -28,9 +28,9 @@
 	import favicon from '$lib/assets/favicon.svg';
 
 	// Importation librarie for icons
-	import { Home, Movie, LiveTv, Person } from '@material-symbols-svg/svelte/rounded';
+	import { Home, Movie, Person } from '@material-symbols-svg/svelte/rounded';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	const searchQuery: SearchQueryState = $state({ value: '' });
 	setContext(SEARCH_QUERY_CONTEXT, searchQuery);
 </script>
@@ -53,13 +53,17 @@
 			<a href="/movies" class="nav-item" title="Movies">
 				<Movie class="icon" />
 			</a>
-			<a href="/watch_room" class="nav-item" title="Watch Room">
-				<LiveTv class="icon" />
-			</a>
-			<a href="/profile" class="nav-item" title="Profile">
-				<Person class="icon" />
-			</a>
-			<a href="/login" class="login-link">Connexion</a>
+			{#if data.isLoggedIn}
+				<a href="/profile" class="nav-item" title={data.user?.displayName ?? 'Profile'}>
+					{#if data.user?.avatarUrl}
+						<img src={data.user.avatarUrl} alt="" class="avatar" />
+					{:else}
+						<Person class="icon" />
+					{/if}
+				</a>
+			{:else}
+				<a href="/login" class="login-link">Connexion</a>
+			{/if}
 		</div>
 	</nav>
 </header>
@@ -197,6 +201,14 @@
 		width: 26px;
 		height: 26px;
 		fill: currentColor;
+	}
+
+	.avatar {
+		width: 32px;
+		height: 32px;
+		border: 1px solid rgb(255 173 92 / 50%);
+		border-radius: 50%;
+		object-fit: cover;
 	}
 
 	.site-main {
