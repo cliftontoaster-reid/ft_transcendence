@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { userClient } from '$lib/server/grpc';
 import { AgeBracket } from '$lib/proto/dionysus/user/v1/user_pb';
@@ -6,7 +6,7 @@ import { toProfile } from '$lib/server/profile';
 import { uuidToBytes } from '$lib/uuid';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.userId) error(401, 'Not authenticated');
 
 	try {
@@ -14,7 +14,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			userId: { value: { value: uuidToBytes(locals.userId) } }
 		});
 		if (!user) error(404, 'User not found');
-		return { profile: toProfile(user) };
+		return {
+			profile: toProfile(user),
+			setupUsername: url.searchParams.get('setup') === 'username'
+		};
 	} catch (e) {
 		if (e instanceof ConnectError) {
 			if (e.code === Code.NotFound) error(404, 'User not found');
@@ -39,6 +42,10 @@ export const actions: Actions = {
 			avatar_url: text('avatar_url'),
 			age: Number(data.get('age') ?? AgeBracket.UNSPECIFIED)
 		};
+		const setupUsername = data.get('setup') === 'username';
+		if (setupUsername && !values.username) {
+			return fail(400, { message: 'A username is required.', values });
+		}
 
 		try {
 			const { user } = await userClient.updateProfile(
@@ -53,6 +60,7 @@ export const actions: Actions = {
 				// the user is identified by metadata, never by a field the client controls
 				{ headers: { 'user-id': locals.userId } }
 			);
+			if (setupUsername) redirect(303, '/');
 			return { success: true, profile: user ? toProfile(user) : undefined };
 		} catch (e) {
 			if (e instanceof ConnectError) {

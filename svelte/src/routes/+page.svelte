@@ -59,44 +59,41 @@
   }));
   const minCategoryItemCount = Math.min(...carouselCategories.map(({ items }) => items.length));
 
-  const searchQuery = getContext<SearchQueryState>(SEARCH_QUERY_CONTEXT);
-  let directMessageContact = $state<string | null>(null);
-  let innerWidth = $state(browser ? window.innerWidth : 1200);
+	const featuredFilm = defaultFilm;
 
-  let responsiveParticlesToShow = $derived.by(() => {
-    if (innerWidth < 200) return 1;
-    if (innerWidth < 450) return 3;
-    if (innerWidth < 1024) return 4;
-    return 7;
-  });
+	const searchQuery = getContext<SearchQueryState>(SEARCH_QUERY_CONTEXT);
+	let directMessageContact = $state<string | null>(null);
+	let innerWidth = $state(browser ? window.innerWidth : 1200);
 
-  let particlesToShow = $derived(Math.min(responsiveParticlesToShow, minCategoryItemCount));
-  let particlesToScroll = $derived(Math.max(1, Math.floor(particlesToShow)));
-  let filteredColors = $derived(
-    colors.filter(
-      (color) =>
-      color.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
-    ),
-  );
-  let isSearching = $derived(searchQuery.value.trim().length > 0);
+	let responsiveParticlesToShow = $derived.by(() => {
+		if (innerWidth < 200) return 1;
+		if (innerWidth < 450) return 3;
+		if (innerWidth < 1024) return 4;
+		return 7;
+	});
+
+	let particlesToShow = $derived(Math.min(responsiveParticlesToShow, minCategoryItemCount));
+	let particlesToScroll = $derived(Math.max(1, Math.floor(particlesToShow)));
+	let filteredColors = $derived(
+		colors.filter((color) => color.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
+	);
+	let isSearching = $derived(searchQuery.value.trim().length > 0);
 </script>
 
 <svelte:window bind:innerWidth />
 
 <div class="home-layout">
-  {#if !isSearching}
-    <div class="overview-chat-container">
-      <div class="home-content">
-        <section class="overview-section">
-          <Overview
-            title="Titre"
-            imageUrl="https://picsum.photos/1280/720"
-            playHref="/watch_room"
-            onPrimaryClick={() => {}}
-            onSecondaryClick={() => {}}
-          />
-        </section>
-      </div>
+	{#if !isSearching}
+		<div class="overview-chat-container">
+			<div class="home-content">
+				<section class="overview-section">
+					<Overview
+						title={featuredFilm.title}
+						imageUrl={featuredFilm.poster}
+						playHref={`/watch_room?film=${featuredFilm.slug}`}
+					/>
+				</section>
+			</div>
 
       <aside class="chat-sidebar">
         <Chat
@@ -126,27 +123,27 @@
     {/if}
   {/if}
 
-  <section class="browse-section" aria-label="Browse colors">
-    {#if isSearching}
-      <div
-        class="grid-container"
-        style={`grid-template-columns: repeat(${particlesToShow}, minmax(0, 1fr));`}
-      >
-        {#each filteredColors as color (color.slug)}
-          <Color {...color} />
-        {/each}
-      </div>
-    {:else}
-      {#each carouselCategories as category (category.title)}
-        <CarouselRow
-          title={category.title}
-          items={category.items}
-          {particlesToShow}
-          {particlesToScroll}
-        />
-      {/each}
-    {/if}
-  </section>
+	<section class="browse-section" aria-label="Browse colors">
+		{#if isSearching}
+			<div
+				class="grid-container"
+				style={`grid-template-columns: repeat(${particlesToShow}, minmax(0, 1fr));`}
+			>
+				{#each filteredColors as color (color.slug)}
+					<Color {...color} />
+				{/each}
+			</div>
+		{:else}
+			{#each carouselCategories as category (category.title)}
+				<CarouselRow
+					title={category.title}
+					items={category.items}
+					{particlesToShow}
+					{particlesToScroll}
+				/>
+			{/each}
+		{/if}
+	</section>
 </div>
 
 <style>

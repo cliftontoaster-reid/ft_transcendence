@@ -1,399 +1,411 @@
 import { ChatClient, type ChatEvent } from './client';
 import type {
-  Message,
-  ChannelSnapshot,
-  UserJoined,
-  UserLeft,
-  MessageEdited,
-  MessageDeleted,
+	Message,
+	ChannelSnapshot,
+	UserJoined,
+	UserLeft,
+	MessageEdited
 } from '$lib/proto/dionysus/chat/v1/message_pb';
 import type { UserID } from '$lib/proto/dionysus/user/v1/user_pb';
 
 export interface ChatMessage {
-  id: string;
-  senderId: string;
-  senderName: string;
-  text: string;
-  timestamp: Date;
-  isOwn: boolean;
-  repliesTo?: string;
-  edited?: boolean;
+	id: string;
+	senderId: string;
+	senderName: string;
+	text: string;
+	timestamp: Date;
+	isOwn: boolean;
+	repliesTo?: string;
+	edited?: boolean;
 }
 
 export interface ChatChannel {
-  id: string;
-  name: string;
-  type: 'global' | 'dm';
-  participants: string[];
+	id: string;
+	name: string;
+	type: 'global' | 'dm';
+	participants: string[];
 }
 
 export interface KnownUser {
-  id: string;
-  name: string;
+	id: string;
+	name: string;
 }
 
 function uuidToString(bytes: Uint8Array): string {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+	return Array.from(bytes)
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
 }
 
-function hexToBytes(hex: string): Uint8Array {
-  return Uint8Array.from(
-    hex.match(/.{2}/g) ?? [],
-    (byte) => Number.parseInt(byte, 16)
-  );
+function stringToUuid(value: string): Uint8Array | undefined {
+	if (!/^[0-9a-fA-F]+$/.test(value) || value.length % 2 !== 0) return undefined;
+	return Uint8Array.from(value.match(/.{2}/g)?.map((pair) => parseInt(pair, 16)) || []);
 }
 
 function userIdToString(userId: UserID | undefined): string {
-  return userId?.value?.value ? uuidToString(userId.value.value) : 'unknown';
+	return userId?.value?.value ? uuidToString(userId.value.value) : 'unknown';
 }
 
 function userIdToName(userId: UserID | undefined): string {
-  const id = userIdToString(userId);
-  return id === 'unknown' ? 'Unknown' : `User ${id.slice(0, 8)}`;
+	const id = userIdToString(userId);
+	return id === 'unknown' ? 'Unknown' : `User ${id.slice(0, 8)}`;
 }
 
 function createDMChannelId(userId1: string, userId2: string): string {
-  const sorted = [userId1, userId2].sort();
-  return `dm:${sorted.join(':')}`;
+	const sorted = [userId1, userId2].sort();
+	return `dm:${sorted.join(':')}`;
 }
 
 export class ChatStore {
-  client = new ChatClient();
-  messagesByChannel = $state<Record<string, ChatMessage[]>>({});
-  channels = $state<Record<string, ChatChannel>>({});
-  currentChannelId = $state<string | null>(null);
-  currentUserId = $state<string | null>(null);
-  currentUserName = $state('Moi');
-  isConnected = $state(false);
-  connectionError = $state<string | null>(null);
-  unsubscribe: (() => void) | null = null;
+	client = new ChatClient();
+	messagesByChannel = $state<Record<string, ChatMessage[]>>({});
+	channels = $state<Record<string, ChatChannel>>({});
+	currentChannelId = $state<string | null>(null);
+	currentUserId = $state<string | null>(null);
+	currentUserName = $state('Moi');
+	isConnected = $state(false);
+	connectionError = $state<string | null>(null);
+	unsubscribe: (() => void) | null = null;
 
-  knownUsers = $state<Record<string, KnownUser>>({});
+	// Track known users by ID
+	knownUsers = $state<Record<string, KnownUser>>({});
 
-  async connect(userId: Uint8Array, token: string, username: string = 'Moi') {
-    this.currentUserName = username;
-    this.currentUserId = uuidToString(userId);
+	async connect(userId: Uint8Array, token: string, username: string = 'Moi') {
+		this.currentUserName = username;
+		this.currentUserId = uuidToString(userId);
 
-    this.unsubscribe = this.client.on((event) => this.handleEvent(event));
+		this.unsubscribe = this.client.on((event) => this.handleEvent(event));
 
-    try {
-      await this.client.connect(userId, token);
-    } catch (e) {
-      this.connectionError = e instanceof Error ? e.message : 'Connection failed';
-      throw e;
-    }
-  }
+		try {
+			await this.client.connect(userId, token);
+		} catch (e) {
+			this.connectionError = e instanceof Error ? e.message : 'Connection failed';
+			throw e;
+		}
+	}
 
-  deleteMessage(messageId: string) {
-    if (!messageId) return;
+	private handleEvent(event: ChatEvent) {
+		switch (event.type) {
+			case 'connected':
+				this.isConnected = true;
+				this.connectionError = null;
+				// Join global channel by default
+				const globalId = new TextEncoder().encode('global');
+				this.client.joinChannel(globalId);
+				break;
 
-    const msgBytes = hexToBytes(messageId);
-    const roomBytes = this.currentChannelId
-      ? new TextEncoder().encode(this.currentChannelId)
-      : undefined;
+			case 'disconnected':
+				this.isConnected = false;
+				break;
 
-    this.client.deleteMessage(msgBytes, roomBytes);
-  }
+			case 'error':
+				this.connectionError = event.error.message;
+				console.error('[ChatStore] Server error:', event.error.code, event.error.message);
+				break;
 
-  private handleEvent(event: ChatEvent) {
-    switch (event.type) {
-      case 'connected':
-        this.isConnected = true;
-        this.connectionError = null;
-        const globalId = new TextEncoder().encode('global');
-        this.client.joinChannel(globalId);
-        break;
+			case 'snapshot':
+				this.handleSnapshot(event.snapshot);
+				break;
 
-      case 'disconnected':
-        this.isConnected = false;
-        break;
+			case 'message':
+				this.handleMessage(event.message);
+				break;
 
-      case 'error':
-        this.connectionError = event.error.message;
-        console.error('[ChatStore] Server error:', event.error.code, event.error.message);
-        break;
+			case 'edited':
+				this.handleEdited(event.edited);
+				break;
 
-      case 'snapshot':
-        this.handleSnapshot(event.snapshot);
-        break;
+			case 'joined':
+				this.handleJoined(event.joined);
+				break;
 
-      case 'message':
-        this.handleMessage(event.message);
-        break;
+			case 'left':
+				this.handleLeft(event.left);
+				break;
 
-      case 'edited':
-        this.handleEdited(event.edited);
-        break;
+			case 'pong':
+				break;
+		}
+	}
 
-      case 'deleted':
-        this.handleDeleted(event.deleted);
-        break;
+	private handleSnapshot(snapshot: ChannelSnapshot) {
+		if (!snapshot.room?.id?.value?.value) {
+			return;
+		}
 
-      case 'joined':
-        this.handleJoined(event.joined);
-        break;
+		const channelIdBytes = snapshot.room.id.value.value;
+		// Check if this is the global channel (bytes for "global")
+		const globalBytes = new TextEncoder().encode('global');
+		const isGlobal =
+			channelIdBytes.length === globalBytes.length &&
+			channelIdBytes.every((b, i) => b === globalBytes[i]);
+		const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
+		const channelName = snapshot.room.name || 'Unknown';
+		const isDM = channelName.startsWith('dm:');
 
-      case 'left':
-        this.handleLeft(event.left);
-        break;
+		// Track users from participants
+		for (const participant of snapshot.room.participant || []) {
+			const participantId = userIdToString(participant.id);
+			const participantName =
+				participant.displayName || participant.username || userIdToName(participant.id);
+			this.knownUsers[participantId] = { id: participantId, name: participantName };
+		}
 
-      case 'pong':
-        break;
-    }
-  }
+		this.channels[channelId] = {
+			id: channelId,
+			name: channelName,
+			type: isDM ? 'dm' : 'global',
+			participants:
+				snapshot.room.participant?.map(
+					(p) => p.displayName || p.username || userIdToString(p.id)
+				) || []
+		};
 
-  private handleSnapshot(snapshot: ChannelSnapshot) {
-    if (!snapshot.room?.id?.value?.value) {
-      return;
-    }
+		if (!this.messagesByChannel[channelId]) {
+			this.messagesByChannel[channelId] = [];
+		}
 
-    const channelIdBytes = snapshot.room.id.value.value;
-    const globalBytes = new TextEncoder().encode('global');
-    const isGlobal =
-      channelIdBytes.length === globalBytes.length &&
-      channelIdBytes.every((b, i) => b === globalBytes[i]);
-    const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
-    const channelName = snapshot.room.name || 'Unknown';
-    const isDM = channelName.startsWith('dm:');
+		const messages = snapshot.recentMessages || [];
+		const chatMessages: ChatMessage[] = messages.map((msg) => {
+			const senderId = userIdToString(msg.senderId);
+			// Track known user
+			this.knownUsers[senderId] = { id: senderId, name: userIdToName(msg.senderId) };
 
-    for (const participant of snapshot.room.participant || []) {
-      const participantId = userIdToString(participant.id);
-      const participantName = participant.username || userIdToName(participant.id);
-      this.knownUsers[participantId] = { id: participantId, name: participantName };
-    }
+			return {
+				id: uuidToString(msg.id?.value?.value || new Uint8Array()),
+				senderId,
+				senderName: userIdToName(msg.senderId),
+				text: msg.message,
+				timestamp: msg.createdAt
+					? new Date(
+							msg.createdAt.year || 0,
+							(msg.createdAt.month || 1) - 1,
+							msg.createdAt.day || 1,
+							msg.createdAt.hours || 0,
+							msg.createdAt.minutes || 0,
+							msg.createdAt.seconds || 0
+						)
+					: new Date(),
+				isOwn: userIdToString(msg.senderId) === this.currentUserId,
+				repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined
+			};
+		});
 
-    this.channels[channelId] = {
-      id: channelId,
-      name: channelName,
-      type: isDM ? 'dm' : 'global',
-      participants: snapshot.room.participant?.map((p) => p.username || userIdToString(p.id)) || [],
-    };
+		this.messagesByChannel[channelId] = chatMessages;
 
-    if (!this.messagesByChannel[channelId]) {
-      this.messagesByChannel[channelId] = [];
-    }
+		if (!this.currentChannelId) {
+			this.currentChannelId = channelId;
+		}
+	}
 
-    const messages = snapshot.recentMessages || [];
-    const chatMessages: ChatMessage[] = messages.map((msg) => {
-      const senderId = userIdToString(msg.senderId);
-      this.knownUsers[senderId] = { id: senderId, name: userIdToName(msg.senderId) };
+	private handleMessage(msg: Message) {
+		if (!msg.roomId?.value?.value) return;
 
-      return {
-        id: uuidToString(msg.id?.value?.value || new Uint8Array()),
-        senderId,
-        senderName: userIdToName(msg.senderId),
-        text: msg.message,
-        timestamp: msg.createdAt
-          ? new Date(
-              msg.createdAt.year || 0,
-              (msg.createdAt.month || 1) - 1,
-              msg.createdAt.day || 1,
-              msg.createdAt.hours || 0,
-              msg.createdAt.minutes || 0,
-              msg.createdAt.seconds || 0
-            )
-          : new Date(),
-        isOwn: userIdToString(msg.senderId) === this.currentUserId,
-        repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined,
-      };
-    });
+		const channelIdBytes = msg.roomId.value.value;
+		// Check if this is the global channel (bytes for "global")
+		const globalBytes = new TextEncoder().encode('global');
+		const isGlobal =
+			channelIdBytes.length === globalBytes.length &&
+			channelIdBytes.every((b, i) => b === globalBytes[i]);
+		const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
 
-    this.messagesByChannel[channelId] = chatMessages;
+		const senderId = userIdToString(msg.senderId);
+		const senderName = userIdToName(msg.senderId);
 
-    if (!this.currentChannelId) {
-      this.currentChannelId = channelId;
-    }
-  }
+		// Track known user
+		this.knownUsers[senderId] = { id: senderId, name: senderName };
 
-  private handleMessage(msg: Message) {
-    if (!msg.roomId?.value?.value) return;
+		if (!this.messagesByChannel[channelId]) {
+			this.messagesByChannel[channelId] = [];
+		}
 
-    const channelIdBytes = msg.roomId.value.value;
-    const globalBytes = new TextEncoder().encode('global');
-    const isGlobal =
-      channelIdBytes.length === globalBytes.length &&
-      channelIdBytes.every((b, i) => b === globalBytes[i]);
-    const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
+		const chatMessage: ChatMessage = {
+			id: uuidToString(msg.id?.value?.value || new Uint8Array()),
+			senderId,
+			senderName: userIdToName(msg.senderId),
+			text: msg.message,
+			timestamp: msg.createdAt
+				? new Date(
+						msg.createdAt.year || 0,
+						(msg.createdAt.month || 1) - 1,
+						msg.createdAt.day || 1,
+						msg.createdAt.hours || 0,
+						msg.createdAt.minutes || 0,
+						msg.createdAt.seconds || 0
+					)
+				: new Date(),
+			isOwn: senderId === this.currentUserId,
+			repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined
+		};
 
-    const senderId = userIdToString(msg.senderId);
-    const senderName = userIdToName(msg.senderId);
+		const messages = this.messagesByChannel[channelId] || [];
+		messages.push(chatMessage);
+		this.messagesByChannel[channelId] = [...messages];
+	}
 
-    this.knownUsers[senderId] = { id: senderId, name: senderName };
+	private handleEdited(edited: MessageEdited) {
+		if (!edited.id?.value?.value) return;
 
-    if (!this.messagesByChannel[channelId]) {
-      this.messagesByChannel[channelId] = [];
-    }
+		const messageId = uuidToString(edited.id.value.value);
 
-    const chatMessage: ChatMessage = {
-      id: uuidToString(msg.id?.value?.value || new Uint8Array()),
-      senderId,
-      senderName: userIdToName(msg.senderId),
-      text: msg.message,
-      timestamp: msg.createdAt
-        ? new Date(
-            msg.createdAt.year || 0,
-            (msg.createdAt.month || 1) - 1,
-            msg.createdAt.day || 1,
-            msg.createdAt.hours || 0,
-            msg.createdAt.minutes || 0,
-            msg.createdAt.seconds || 0
-          )
-        : new Date(),
-      isOwn: senderId === this.currentUserId,
-      repliesTo: msg.repliesTo?.value?.value ? uuidToString(msg.repliesTo.value.value) : undefined,
-    };
+		for (const channelId of Object.keys(this.messagesByChannel)) {
+			const messages = this.messagesByChannel[channelId];
+			const index = messages.findIndex((m) => m.id === messageId);
+			if (index !== -1) {
+				messages[index] = {
+					...messages[index],
+					text: edited.newMessage,
+					edited: true
+				};
+				this.messagesByChannel[channelId] = [...messages];
+				break;
+			}
+		}
+	}
 
-    const messages = this.messagesByChannel[channelId] || [];
-    messages.push(chatMessage);
-    this.messagesByChannel[channelId] = [...messages];
-  }
+	private handleJoined(joined: UserJoined) {
+		if (!joined.channelId?.value?.value || !joined.user) return;
 
-  private handleEdited(edited: MessageEdited) {
-    if (!edited.id?.value?.value) return;
+		const channelIdBytes = joined.channelId.value.value;
+		const globalBytes = new TextEncoder().encode('global');
+		const isGlobal =
+			channelIdBytes.length === globalBytes.length &&
+			channelIdBytes.every((b, i) => b === globalBytes[i]);
+		const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
 
-    const messageId = uuidToString(edited.id.value.value);
+		const channel = this.channels[channelId];
+		if (channel) {
+			const participants = [
+				...channel.participants,
+				joined.user.displayName || joined.user.username || 'Unknown'
+			];
+			this.channels[channelId] = { ...channel, participants };
+		}
 
-    for (const channelId of Object.keys(this.messagesByChannel)) {
-      const messages = this.messagesByChannel[channelId];
-      const index = messages.findIndex((m) => m.id === messageId);
-      if (index !== -1) {
-        messages[index] = {
-          ...messages[index],
-          text: edited.newMessage,
-          edited: true,
-        };
-        this.messagesByChannel[channelId] = [...messages];
-        break;
-      }
-    }
-  }
+		// Track the user who joined
+		const userId = userIdToString(joined.user.id);
+		const userName =
+			joined.user.displayName || joined.user.username || userIdToName(joined.user.id);
+		this.knownUsers[userId] = { id: userId, name: userName };
+	}
 
-  private handleDeleted(deleted: MessageDeleted) {
-    if (!deleted.id?.value?.value) return;
+	private handleLeft(left: UserLeft) {
+		if (!left.channelId?.value?.value || !left.userId?.value?.value) return;
 
-    const messageId = uuidToString(deleted.id.value.value);
+		const channelIdBytes = left.channelId.value.value;
+		const globalBytes = new TextEncoder().encode('global');
+		const isGlobal =
+			channelIdBytes.length === globalBytes.length &&
+			channelIdBytes.every((b, i) => b === globalBytes[i]);
+		const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
+		const userId = uuidToString(left.userId.value.value);
+		const channel = this.channels[channelId];
+		if (channel) {
+			const participants = channel.participants.filter((p) => p !== userId);
+			this.channels[channelId] = { ...channel, participants };
+		}
+	}
 
-    for (const channelId of Object.keys(this.messagesByChannel)) {
-      const messages = this.messagesByChannel[channelId];
-      const filtered = messages.filter((m) => m.id !== messageId);
-      if (filtered.length !== messages.length) {
-        this.messagesByChannel[channelId] = filtered;
-      }
-    }
-  }
+	currentMessages = $derived.by(() => {
+		if (!this.currentChannelId) return [];
+		return this.messagesByChannel[this.currentChannelId] || [];
+	});
 
-  private handleJoined(joined: UserJoined) {
-    if (!joined.channelId?.value?.value || !joined.user) return;
+	// Expose currentUserId for components that need it
+	// currentUserId is already a $state property
 
-    const channelIdBytes = joined.channelId.value.value;
-    const globalBytes = new TextEncoder().encode('global');
-    const isGlobal =
-      channelIdBytes.length === globalBytes.length &&
-      channelIdBytes.every((b, i) => b === globalBytes[i]);
-    const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
+	// DM channels with their participants and channel IDs
+	dmChannels = $derived.by(() => {
+		const channels: Array<{
+			channelId: string;
+			name: string;
+			lastMessage: string;
+			timestamp: Date;
+		}> = [];
+		for (const [channelId, messages] of Object.entries(this.messagesByChannel)) {
+			if (channelId.startsWith('dm:') && messages.length > 0) {
+				// Find the other participant (not current user)
+				const otherMsg = messages.find((m) => !m.isOwn);
+				if (otherMsg) {
+					const lastMsg = messages[messages.length - 1];
+					channels.push({
+						channelId,
+						name: otherMsg.senderName,
+						lastMessage: lastMsg.text,
+						timestamp: lastMsg.timestamp
+					});
+				}
+			}
+		}
+		// Sort by timestamp descending
+		return channels.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+	});
 
-    const channel = this.channels[channelId];
-    if (channel) {
-      const participants = [...channel.participants, joined.user.username || 'Unknown'];
-      this.channels[channelId] = { ...channel, participants };
-    }
+	// Known users list for contacts sidebar (excluding self)
+	knownUsersList = $derived.by(() => {
+		return Object.values(this.knownUsers)
+			.filter((user) => user.id !== this.currentUserId)
+			.sort((a, b) => a.name.localeCompare(b.name));
+	});
 
-    const userId = userIdToString(joined.user.id);
-    const userName = joined.user.username || userIdToName(joined.user.id);
-    this.knownUsers[userId] = { id: userId, name: userName };
-  }
+	sendMessage(text: string, repliesTo?: string) {
+		if (!this.currentChannelId || !text.trim()) return;
 
-  private handleLeft(left: UserLeft) {
-    if (!left.channelId?.value?.value || !left.userId?.value?.value) return;
+		const channelId =
+			this.currentChannelId === 'global'
+				? new TextEncoder().encode('global')
+				: new TextEncoder().encode(this.currentChannelId);
 
-    const channelIdBytes = left.channelId.value.value;
-    const globalBytes = new TextEncoder().encode('global');
-    const isGlobal =
-      channelIdBytes.length === globalBytes.length &&
-      channelIdBytes.every((b, i) => b === globalBytes[i]);
-    const channelId = isGlobal ? 'global' : new TextDecoder().decode(channelIdBytes);
-    const userId = uuidToString(left.userId.value.value);
-    const channel = this.channels[channelId];
-    if (channel) {
-      const participants = channel.participants.filter((p) => p !== userId);
-      this.channels[channelId] = { ...channel, participants };
-    }
-  }
+		const repliesToBytes = repliesTo ? stringToUuid(repliesTo) : undefined;
+		this.client.sendMessage(channelId, text.trim(), repliesToBytes);
+	}
 
-  currentMessages = $derived.by(() => {
-    if (!this.currentChannelId) return [];
-    return this.messagesByChannel[this.currentChannelId] || [];
-  });
+	deleteMessage(messageId: string) {
+		if (!this.currentChannelId) return;
 
-  dmChannels = $derived.by(() => {
-    const channels: Array<{ channelId: string; name: string; lastMessage: string; timestamp: Date }> = [];
-    for (const [channelId, messages] of Object.entries(this.messagesByChannel)) {
-      if (channelId.startsWith('dm:') && messages.length > 0) {
-        const otherMsg = messages.find((m) => !m.isOwn);
-        if (otherMsg) {
-          const lastMsg = messages[messages.length - 1];
-          channels.push({
-            channelId,
-            name: otherMsg.senderName,
-            lastMessage: lastMsg.text,
-            timestamp: lastMsg.timestamp,
-          });
-        }
-      }
-    }
-    return channels.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  });
+		const channelId =
+			this.currentChannelId === 'global'
+				? new TextEncoder().encode('global')
+				: new TextEncoder().encode(this.currentChannelId);
+		const messageIdBytes = stringToUuid(messageId);
+		if (!messageIdBytes) return;
 
-  knownUsersList = $derived.by(() => {
-    return Object.values(this.knownUsers)
-      .filter((user) => user.id !== this.currentUserId)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  });
+		this.client.deleteMessage(messageIdBytes, channelId);
+	}
 
-  sendMessage(text: string, replyTo?: string) {
-    if (!this.currentChannelId || !text.trim()) return;
+	joinChannel(channelId: string) {
+		const encoded = new TextEncoder().encode(channelId);
+		this.client.joinChannel(encoded);
+		this.currentChannelId = channelId;
+	}
 
-    const channelId =
-      this.currentChannelId === 'global'
-        ? new TextEncoder().encode('global')
-        : new TextEncoder().encode(this.currentChannelId);
+	switchToGlobalChat() {
+		this.joinChannel('global');
+	}
 
-    const replyToBytes = replyTo ? hexToBytes(replyTo) : undefined;
+	startDM(userId: string) {
+		// For DM, we create a channel ID using sorted user IDs
+		if (!this.currentUserId) return;
+		const channelId = createDMChannelId(this.currentUserId, userId);
+		this.joinChannel(channelId);
+	}
 
-    this.client.sendMessage(channelId, text.trim(), replyToBytes);
-  }
+	// Convenience method to start DM by user name (looks up the user ID)
+	startDMByName(userName: string) {
+		const user = Object.values(this.knownUsers).find((u) => u.name === userName);
+		if (user) {
+			this.startDM(user.id);
+		}
+	}
 
-  joinChannel(channelId: string) {
-    const encoded = new TextEncoder().encode(channelId);
-    this.client.joinChannel(encoded);
-    this.currentChannelId = channelId;
-  }
-
-  switchToGlobalChat() {
-    this.joinChannel('global');
-  }
-
-  startDM(userId: string) {
-    if (!this.currentUserId) return;
-    const channelId = createDMChannelId(this.currentUserId, userId);
-    this.joinChannel(channelId);
-  }
-
-  startDMByName(userName: string) {
-    const user = Object.values(this.knownUsers).find((u) => u.name === userName);
-    if (user) {
-      this.startDM(user.id);
-    }
-  }
-
-  disconnect() {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
-    this.client.disconnect();
-    this.isConnected = false;
-  }
+	disconnect() {
+		if (this.unsubscribe) {
+			this.unsubscribe();
+			this.unsubscribe = null;
+		}
+		this.client.disconnect();
+		this.isConnected = false;
+	}
 }
 
 export const chatStore = new ChatStore();

@@ -8,7 +8,7 @@
 
     // Shape comes from `user.proto` (User) and the `users` table of db.dbml.
     const profile = $derived(data.profile);
-    let editing = $state(false);
+    let editing = $derived(data.setupUsername);
 
     // Live username check against UserService.CheckUsernameAvailability. Purely a hint:
     // the server still rejects a taken username on submit.
@@ -69,9 +69,11 @@
 
 <ProfileCard {profile}>
     {#snippet actions()}
-        <button class="primary" type="button" onclick={toggleEditing}>
-            {editing ? 'Cancel' : 'Edit'}
-        </button>
+        {#if !data.setupUsername}
+            <button class="primary" type="button" onclick={toggleEditing}>
+                {editing ? 'Cancel' : 'Edit'}
+            </button>
+        {/if}
     {/snippet}
 
     {#if editing}
@@ -85,6 +87,11 @@
                     if (result.type === 'success') editing = false;
                 }}
         >
+            {#if data.setupUsername}
+                <input type="hidden" name="setup" value="username" />
+                <p class="intro">Choose a username to finish setting up your account.</p>
+            {/if}
+
             {#if form?.message}
                 <p class="error" role="alert">{form.message}</p>
             {/if}
@@ -94,7 +101,7 @@
                 <input
                     name="display_name"
                     maxlength="256"
-                    required
+                    required={!data.setupUsername}
                     value={form?.values?.display_name ?? profile.displayName}
                 />
             </label>
@@ -103,6 +110,7 @@
                 <input
                     name="username"
                     maxlength="64"
+                    required={data.setupUsername}
                     value={form?.values?.username ?? profile.username}
                     oninput={checkUsername}
                 />
