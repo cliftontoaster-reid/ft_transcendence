@@ -30,8 +30,8 @@
   let chatMouseY = $state(0);
   let isCursorVisible = $state(false);
 
-  let mouseTimer: NodeJS.Timeout;
-  let cursorIdleTimer: NodeJS.Timeout;
+  let mouseTimer: ReturnType<typeof setTimeout> | undefined;
+  let cursorIdleTimer: ReturnType<typeof setTimeout> | undefined;
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -57,28 +57,24 @@
   function handleMouseMove(event: MouseEvent) {
     if (!isFullscreen) return;
 
-    // Calculate coordinates relative to player container for custom cursor
     if (playerContainer) {
       const rect = playerContainer.getBoundingClientRect();
       mouseX = event.clientX - rect.left;
       mouseY = event.clientY - rect.top;
     }
 
-    // Calculate coordinates relative to chat overlay for spotlight gradient
     if (chatOverlay) {
       const chatRect = chatOverlay.getBoundingClientRect();
       chatMouseX = event.clientX - chatRect.left;
       chatMouseY = event.clientY - chatRect.top;
     }
 
-    // Show overlay chat and keep it active
     showOverlayChat = true;
     clearTimeout(mouseTimer);
     mouseTimer = setTimeout(() => {
       showOverlayChat = false;
     }, 2500);
 
-    // Make custom cursor visible and reset idle fade-out timer
     isCursorVisible = true;
     clearTimeout(cursorIdleTimer);
     cursorIdleTimer = setTimeout(() => {
@@ -131,6 +127,22 @@
             style="left: {mouseX}px; top: {mouseY}px;"
           ></div>
 
+          <!-- Pinned locked speaker glides left when chat + contacts are open, and glides back when chat leaves -->
+          {#if isVoiceCallActive && isSpeakerLocked}
+            <div
+              class="speaker-rect locked fullscreen-pinned"
+              class:contacts-hidden={!isContactsOpen}
+              class:chat-open={showOverlayChat}
+            >
+              {#if activeSpeaker}
+                <span class="speaker-avatar">{activeSpeakerInitial}</span>
+                <span class="speaker-name">{activeSpeaker.name}</span>
+              {:else}
+                <span class="speaker-name">Voice Standby</span>
+              {/if}
+            </div>
+          {/if}
+
           <!-- Fullscreen chat overlay with spotlight effect -->
           <div
             class="fullscreen-chat-overlay"
@@ -140,8 +152,8 @@
             style="--mouse-x: {chatMouseX}px; --mouse-y: {chatMouseY}px;"
           >
             <div class="chat-wrapper-inner">
-              {#if isVoiceCallActive}
-                <div class="speaker-rect" class:locked={isSpeakerLocked}>
+              {#if isVoiceCallActive && !isSpeakerLocked}
+                <div class="speaker-rect">
                   {#if activeSpeaker}
                     <span class="speaker-avatar">{activeSpeakerInitial}</span>
                     <span class="speaker-name">{activeSpeaker.name}</span>
@@ -151,16 +163,18 @@
                 </div>
               {/if}
               <Chat variant="watch-room" />
-              <button
-                class="speaker-lock-btn"
-                class:locked={isSpeakerLocked}
-                onclick={() => (isSpeakerLocked = !isSpeakerLocked)}
-                title={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
-                aria-label={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
-                aria-pressed={isSpeakerLocked}
-              >
-                {isSpeakerLocked ? '\u{1F512}\u{FE0E}' : '\u{1F513}\u{FE0E}'}
-              </button>
+              {#if isVoiceCallActive}
+                <button
+                  class="speaker-lock-btn"
+                  class:locked={isSpeakerLocked}
+                  onclick={() => (isSpeakerLocked = !isSpeakerLocked)}
+                  title={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+                  aria-label={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+                  aria-pressed={isSpeakerLocked}
+                >
+                  {isSpeakerLocked ? '🔒\uFE0E' : '🔓\uFE0E'}
+                </button>
+              {/if}
               <button
                 class="contacts-toggle-tab"
                 onclick={() => (isContactsOpen = !isContactsOpen)}
@@ -201,16 +215,18 @@
           </div>
         {/if}
         <Chat variant="watch-room" />
-        <button
-          class="speaker-lock-btn"
-          class:locked={isSpeakerLocked}
-          onclick={() => (isSpeakerLocked = !isSpeakerLocked)}
-          title={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
-          aria-label={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
-          aria-pressed={isSpeakerLocked}
-        >
-          {isSpeakerLocked ? '🔒' : '🔓'}
-        </button>
+        {#if isVoiceCallActive}
+          <button
+            class="speaker-lock-btn"
+            class:locked={isSpeakerLocked}
+            onclick={() => (isSpeakerLocked = !isSpeakerLocked)}
+            title={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+            aria-label={isSpeakerLocked ? "Unlock camera" : "Lock camera"}
+            aria-pressed={isSpeakerLocked}
+          >
+            {isSpeakerLocked ? '🔒\uFE0E' : '🔓\uFE0E'}
+          </button>
+        {/if}
         <button
           class="contacts-toggle-tab"
           onclick={() => (isContactsOpen = !isContactsOpen)}
