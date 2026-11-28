@@ -189,6 +189,11 @@ pub fn merge_metadata(parts: Vec<MediaMetadata>) -> MediaMetadata {
         merged.external_ids.push(id);
       }
     }
+    for genre in part.genres {
+      if !merged.genres.iter().any(|g| g.eq_ignore_ascii_case(&genre)) {
+        merged.genres.push(genre);
+      }
+    }
   }
   merged
 }
@@ -232,9 +237,7 @@ pub fn merge_search_results(mut results: Vec<SearchResult>) -> Vec<SearchResult>
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::model::{
-    CreditRole, Descriptor, ExternalId, MediaImageKind, MediaKind, RemoteImage,
-  };
+  use crate::model::{CreditRole, Descriptor, ExternalId, MediaImageKind, MediaKind, RemoteImage};
   use async_trait::async_trait;
   use std::sync::Mutex;
 
@@ -315,8 +318,8 @@ mod tests {
 
   #[tokio::test]
   async fn search_sorts_by_score_and_survives_failures() {
-    let primary = MockProvider::new("primary")
-      .with_results(vec![result("a", 0.6), result("b", 0.9)]);
+    let primary =
+      MockProvider::new("primary").with_results(vec![result("a", 0.6), result("b", 0.9)]);
     let mut broken = MockProvider::new("broken");
     broken.fail_search = true;
 
@@ -335,7 +338,11 @@ mod tests {
       release_year: Some(1999),
       runtime_secs: Some(8_100),
       localized_texts: vec![text("en", "The Matrix", "A hacker learns the truth.", "")],
-      external_ids: vec![ExternalId { provider: "tmdb".into(), value: "603".into() }],
+      external_ids: vec![ExternalId {
+        provider: "tmdb".into(),
+        value: "603".into(),
+      }],
+      genres: vec!["Action".into(), "Sci-Fi".into()],
       ..Default::default()
     });
     let omdb = MockProvider::new("omdb").with_metadata(MediaMetadata {
@@ -348,16 +355,26 @@ mod tests {
         locale: None,
       }],
       credits: vec![Credit {
-        person_external_ids: vec![ExternalId { provider: "tmdb".into(), value: "1".into() }],
+        person_external_ids: vec![ExternalId {
+          provider: "tmdb".into(),
+          value: "1".into(),
+        }],
         name: "Keanu Reeves".into(),
         roles: vec![CreditRole::Actor],
         characters: vec!["Neo".into()],
         billing: 1,
       }],
       external_ids: vec![
-        ExternalId { provider: "imdb".into(), value: "tt0133093".into() },
-        ExternalId { provider: "tmdb".into(), value: "603".into() }, // dup
+        ExternalId {
+          provider: "imdb".into(),
+          value: "tt0133093".into(),
+        },
+        ExternalId {
+          provider: "tmdb".into(),
+          value: "603".into(),
+        }, // dup
       ],
+      genres: vec!["action".into(), "Thriller".into()], // case-insensitive dup
       ..Default::default()
     });
 
@@ -387,6 +404,7 @@ mod tests {
     assert!(merged.external_ids.iter().any(|e| e.provider == "imdb"));
     assert_eq!(merged.credits.len(), 1);
     assert_eq!(merged.images.len(), 1);
+    assert_eq!(merged.genres, ["Action", "Sci-Fi", "Thriller"]);
   }
 
   #[tokio::test]
@@ -402,7 +420,10 @@ mod tests {
     registry.register(Arc::new(broken), 10);
     registry.register(Arc::new(ok), 5);
 
-    let merged = registry.fetch_all(&[("broken", "x"), ("ok", "y")]).await.expect("merge");
+    let merged = registry
+      .fetch_all(&[("broken", "x"), ("ok", "y")])
+      .await
+      .expect("merge");
     assert_eq!(merged.release_year, Some(2021));
 
     let err = registry.fetch_all(&[("broken", "x")]).await;
@@ -450,8 +471,7 @@ mod tests {
   #[tokio::test]
   async fn single_provider_accessors_drive_the_plugin_loop() {
     let mut registry = ProviderRegistry::new();
-    let plugin = MockProvider::new("fixture")
-      .with_results(vec![result("fixture:1", 0.9)]);
+    let plugin = MockProvider::new("fixture").with_results(vec![result("fixture:1", 0.9)]);
     let native = MockProvider::new("tmdb").with_results(vec![result("603", 1.0)]);
     registry.register(Arc::new(native), 10);
     registry.register(Arc::new(plugin), 1);
@@ -462,7 +482,10 @@ mod tests {
     assert_eq!(registry.priority("fixture"), Some(1));
     assert_eq!(registry.priority("nope"), None);
 
-    let hits = registry.search_one("fixture", &MediaQuery::default()).await.unwrap();
+    let hits = registry
+      .search_one("fixture", &MediaQuery::default())
+      .await
+      .unwrap();
     assert_eq!(hits[0].id, "fixture:1");
 
     let unknown = registry.search_one("nope", &MediaQuery::default()).await;

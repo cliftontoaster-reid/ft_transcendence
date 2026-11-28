@@ -1,0 +1,28 @@
+# Copy to `config/oidc.toml` (or point OIDC_CONFIG at it).
+#
+# Runtime environment:
+#   DATABASE_URL          postgres connection string (required)
+#   REDIS_URL             redis connection string (default: redis://127.0.0.1:6379/)
+#   SESSION_SECRET        HMAC key for session tokens, at least 32 bytes (required)
+#   SESSION_TTL_SECONDS   session lifetime (default: 86400)
+#   SESSION_COOKIE_SECURE "false" to allow the cookie over plain HTTP (default: true)
+#   OIDC_CONFIG           path to this file
+
+[oidc]
+default = "keycloak"
+post_login_redirect = "http://localhost:5173/"
+post_logout_redirect = "http://localhost:5173/logged-out"
+
+[oidc.provider.keycloak]
+issuer_url = "https://auth.example.com/realms/main"
+client_id = "dionysus"
+# Secrets may also be `ENV::VARIABLE_NAME` or `DOCKER_SECRET::secret_name`.
+client_secret = "ENV::OIDC_KEYCLOAK_CLIENT_SECRET"
+redirect_uris = ["http://localhost:8000/auth/callback"]
+scopes = ["openid", "profile", "email"]
+groups_claim = "groups"
+
+# IdP group -> local role name. Roles are created on demand.
+[oidc.provider.keycloak.mappings]
+"Admin Group" = "admin"
+"Viewers" = "viewer"

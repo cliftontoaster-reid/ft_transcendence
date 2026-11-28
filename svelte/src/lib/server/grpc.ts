@@ -1,6 +1,7 @@
 import { createClient } from '@connectrpc/connect';
 import { createGrpcTransport } from '@connectrpc/connect-node';
 import { env } from '$env/dynamic/private';
+import { RecommendationService } from '$lib/proto/dionysus/recommendations/v1/recommendations_pb';
 import { UserService } from '$lib/proto/dionysus/user/v1/user_pb';
 
 // Server-side only: the browser never talks gRPC, it talks to SvelteKit.
@@ -9,3 +10,12 @@ const transport = createGrpcTransport({
 });
 
 export const userClient = createClient(UserService, transport);
+
+const recommendationTransport = createGrpcTransport({
+	baseUrl: env.RECOMMENDATION_SERVICE_URL ?? 'http://127.0.0.1:50053'
+});
+
+export const recommendationClient = createClient(
+	RecommendationService,
+	recommendationTransport
+);

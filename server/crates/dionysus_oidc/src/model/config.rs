@@ -109,6 +109,68 @@ impl SecretReference {
   }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct OidcConfig {
+  pub default: String,
+  pub provider: HashMap<String, OidcProviderConfig>,
+
+  /// Where the browser should land after a successful login. When unset the
+  /// callback responds with the session as JSON instead of redirecting.
+  #[serde(default)]
+  pub post_login_redirect: Option<Url>,
+
+  /// Where the browser should land after logout.
+  #[serde(default)]
+  pub post_logout_redirect: Option<Url>,
+}
+
+impl OidcConfig {
+  pub fn provider(&self, name: &str) -> Option<&OidcProviderConfig> {
+    self.provider.get(name)
+  }
+
+  pub fn provider_by_issuer(&self, issuer: &str) -> Option<&OidcProviderConfig> {
+    self
+      .provider
+      .values()
+      .find(|provider| provider.issuer_url.as_str() == issuer)
+  }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct OidcProviderConfig {
+  pub issuer_url: Url,
+  pub client_id: String,
+  pub client_secret: SecretReference,
+  pub redirect_uris: Vec<Url>,
+  pub scopes: Vec<String>,
+
+  #[serde(default = "default_groups_claim")]
+  pub groups_claim: String,
+
+  #[serde(default)]
+  pub mappings: HashMap<String, String>,
+}
+
+impl OidcProviderConfig {
+  /// Translate the IdP groups carried by a login into the local role names
+  /// configured in `mappings`.
+  pub fn mapped_roles<I, S>(&self, groups: I) -> Vec<String>
+  where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+  {
+    let mut roles: Vec<String> = groups
+      .into_iter()
+      .filter_map(|group| self.mappings.get(group.as_ref()).cloned())
+      .collect();
+
+    roles.sort();
+    roles.dedup();
+    roles
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -155,25 +217,47 @@ mod tests {
 
     assert!(error.to_string().contains("secret reference is empty"));
   }
-}
 
-#[derive(Debug, Deserialize)]
-pub struct OidcConfig {
-  pub default: String,
-  pub provider: HashMap<String, OidcProviderConfig>,
-}
+  fn provider() -> OidcProviderConfig {
+    OidcProviderConfig {
+      issuer_url: Url::parse("https://auth.example.com/realms/main").unwrap(),
+      client_id: "client".to_string(),
+      client_secret: SecretReference::Embedded("secret".to_string()),
+      redirect_uris: vec![Url::parse("http://localhost:8000/auth/callback").unwrap()],
+      scopes: vec!["openid".to_string()],
+      groups_claim: "groups".to_string(),
+      mappings: HashMap::from([
+        ("Admin Group".to_string(), "admin".to_string()),
+        ("Viewer".to_string(), "viewer".to_string()),
+      ]),
+    }
+  }
 
-#[derive(Debug, Deserialize)]
-pub struct OidcProviderConfig {
-  pub issuer_url: Url,
-  pub client_id: String,
-  pub client_secret: SecretReference,
-  pub redirect_uris: Vec<Url>,
-  pub scopes: Vec<String>,
+  #[test]
+  fn maps_groups_to_roles_and_drops_unknown_groups() {
+    let roles = provider().mapped_roles(["Admin Group", "Viewer", "Unknown"]);
 
-  #[serde(default = "default_groups_claim")]
-  pub groups_claim: String,
+    assert_eq!(roles, vec!["admin".to_string(), "viewer".to_string()]);
+  }
 
-  #[serde(default)]
-  pub mappings: HashMap<String, String>,
+  #[test]
+  fn finds_a_provider_by_issuer() {
+    let config = OidcConfig {
+      default: "keycloak".to_string(),
+      provider: HashMap::from([("keycloak".to_string(), provider())]),
+      post_login_redirect: None,
+      post_logout_redirect: None,
+    };
+
+    assert!(
+      config
+        .provider_by_issuer("https://auth.example.com/realms/main")
+        .is_some()
+    );
+    assert!(
+      config
+        .provider_by_issuer("https://auth.example.com/realms/other")
+        .is_none()
+    );
+  }
 }

@@ -17,43 +17,47 @@
  -->
 
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { getContext } from 'svelte';
-	import Color from '$lib/components/CarouselPartical.svelte';
-	import CarouselRow from '$lib/components/CarouselRow.svelte';
-	import Chat from '$lib/components/chat/Chat.svelte';
-	import Overview from '$lib/components/Overview.svelte';
-	import { colors } from '$lib/colors';
-	import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
-	import '$lib/components/chat/css/home.scss';
-	import { defaultFilm } from '$lib/film';
+  import { browser } from '$app/environment';
+  import { navigating } from '$app/state';
+  import { getContext } from 'svelte';
+  import Color from '$lib/components/CarouselPartical.svelte';
+  import CarouselRow from '$lib/components/CarouselRow.svelte';
+  import Chat from '$lib/components/chat/Chat.svelte';
+  import Overview from '$lib/components/Overview.svelte';
+  import RecommendationRow from '$lib/components/RecommendationRow.svelte';
+  import type { PageData } from './$types';
+  import { colors } from '$lib/colors';
+  import { SEARCH_QUERY_CONTEXT, type SearchQueryState } from '$lib/search-context';
+  import '$lib/components/chat/css/home.scss';
 
-	const carouselCategories = [
-		{
-			title: 'Warm colors',
-			slugs: ['red', 'orange', 'yellow', 'crimson', 'coral', 'peach', 'gold', 'amber']
-		},
-		{
-			title: 'Cool colors',
-			slugs: ['blue', 'cyan', 'teal', 'sky-blue', 'turquoise', 'navy', 'indigo']
-		},
-		{
-			title: 'Green shades',
-			slugs: ['green', 'lime', 'olive', 'mint', 'emerald', 'forest-green']
-		},
-		{
-			title: 'Neutral colors',
-			slugs: ['slate-gray', 'stone-gray', 'brown', 'white', 'black', 'beige', 'cream', 'silver']
-		},
-		{
-			title: 'Purple and pink',
-			slugs: ['purple', 'pink', 'violet', 'lavender', 'magenta']
-		}
-	].map((category) => ({
-		title: category.title,
-		items: colors.filter((color) => category.slugs.includes(color.slug))
-	}));
-	const minCategoryItemCount = Math.min(...carouselCategories.map(({ items }) => items.length));
+  let { data }: { data: PageData } = $props();
+
+  const carouselCategories = [
+    {
+      title: 'Warm colors',
+      slugs: ['red', 'orange', 'yellow', 'crimson', 'coral', 'peach', 'gold', 'amber'],
+    },
+    {
+      title: 'Cool colors',
+      slugs: ['blue', 'cyan', 'teal', 'sky-blue', 'turquoise', 'navy', 'indigo'],
+    },
+    {
+      title: 'Green shades',
+      slugs: ['green', 'lime', 'olive', 'mint', 'emerald', 'forest-green'],
+    },
+    {
+      title: 'Neutral colors',
+      slugs: ['slate-gray', 'stone-gray', 'brown', 'white', 'black', 'beige', 'cream', 'silver'],
+    },
+    {
+      title: 'Purple and pink',
+      slugs: ['purple', 'pink', 'violet', 'lavender', 'magenta'],
+    },
+  ].map((category) => ({
+    title: category.title,
+    items: colors.filter((color) => category.slugs.includes(color.slug)),
+  }));
+  const minCategoryItemCount = Math.min(...carouselCategories.map(({ items }) => items.length));
 
 	const featuredFilm = defaultFilm;
 
@@ -91,16 +95,33 @@
 				</section>
 			</div>
 
-			<aside class="chat-sidebar">
-				<Chat
-					variant="home"
-					{directMessageContact}
-					onBackToGlobalChat={() => (directMessageContact = null)}
-					onDirectMessage={(contact) => (directMessageContact = contact)}
-				/>
-			</aside>
-		</div>
-	{/if}
+      <aside class="chat-sidebar">
+        <Chat
+          variant="home"
+          {directMessageContact}
+          onBackToGlobalChat={() => (directMessageContact = null)}
+          onDirectMessage={(contact) => (directMessageContact = contact)}
+        />
+      </aside>
+    </div>
+
+    {#if navigating}
+      <p class="feedback" role="status">Loading suggestions...</p>
+    {:else}
+      <RecommendationRow
+        title="For you"
+        items={data.forYou}
+        emptyMessage="Watch a few titles to get suggestions here."
+        errorMessage={data.forYouError ? 'Suggestions are unavailable right now.' : undefined}
+      />
+      <RecommendationRow
+        title="Trending now"
+        items={data.trending}
+        emptyMessage="No titles have been watched in the last 30 days."
+        errorMessage={data.trendingError ? 'Trending is unavailable right now.' : undefined}
+      />
+    {/if}
+  {/if}
 
 	<section class="browse-section" aria-label="Browse colors">
 		{#if isSearching}
@@ -124,3 +145,11 @@
 		{/if}
 	</section>
 </div>
+
+<style>
+  .feedback {
+    margin: 1.5rem 0 0;
+    color: #ffffff;
+    font-size: 0.95rem;
+  }
+</style>

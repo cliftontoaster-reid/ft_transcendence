@@ -1,15 +1,16 @@
 use crate::{
   schema::{
-    media, media_external_ids, media_images, media_track, media_translations, metadata_source,
-    my_list, oidc_identities, permissions, role_permissions, roles, sessions, user_friends,
-    user_roles, users, viewer_profiles, watch_history, watch_progress,
+    genre, media, media_credit, media_external_ids, media_genre, media_images, media_rating,
+    media_track, media_translations, metadata_source, my_list, oidc_identities, permissions,
+    person, person_external_ids, recommendation, recommendation_event, role_permissions, roles,
+    sessions, user_friends, user_roles, users, viewer_profiles, watch_history, watch_progress,
   },
   types::{
     media_image_type::MediaImageType, media_kind::MediaKind, media_track_type::MediaTrackType,
     tsvector::TsVector,
   },
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use diesel::prelude::*;
 use pgvector::Vector as PgVector;
 use uuid::Uuid;
@@ -439,4 +440,180 @@ pub struct NewMediaImage<'a> {
   pub image_type: MediaImageType,
   pub locale: &'a str,
   pub storage_path: &'a str,
+}
+
+// --- Recommendations ---
+/// One cached suggestion for a viewer profile. `reason` groups rows into the
+/// UI lists; `source_media_id` anchors "because you watched" / "similar".
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(primary_key(profile_id, media_id, reason))]
+#[diesel(belongs_to(ViewerProfile, foreign_key = profile_id))]
+#[diesel(belongs_to(Media, foreign_key = media_id))]
+#[diesel(table_name = recommendation)]
+pub struct Recommendation {
+  pub profile_id: Uuid,
+  pub media_id: Uuid,
+  pub score: f32,
+  pub reason: String,
+  pub source_media_id: Option<Uuid>,
+  pub algorithm: String,
+  pub generated_at: DateTime<Utc>,
+  pub expires_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = recommendation)]
+pub struct NewRecommendation<'a> {
+  pub profile_id: Uuid,
+  pub media_id: Uuid,
+  pub score: f32,
+  pub reason: &'a str,
+  pub source_media_id: Option<Uuid>,
+  pub algorithm: &'a str,
+  pub expires_at: Option<DateTime<Utc>>,
+}
+
+// --- Recommendation feedback ---
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(primary_key(profile_id, media_id))]
+#[diesel(belongs_to(ViewerProfile, foreign_key = profile_id))]
+#[diesel(belongs_to(Media))]
+#[diesel(table_name = media_rating)]
+pub struct MediaRating {
+  pub profile_id: Uuid,
+  pub media_id: Uuid,
+  pub value: i16,
+  pub created_at: DateTime<Utc>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = media_rating)]
+pub struct NewMediaRating {
+  pub profile_id: Uuid,
+  pub media_id: Uuid,
+  pub value: i16,
+}
+
+/// Implicit interaction event (`impression`, `click`, `play`, `dismiss`) used
+/// to re-rank and measure the recommendation lists.
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(belongs_to(ViewerProfile, foreign_key = profile_id))]
+#[diesel(belongs_to(Media))]
+#[diesel(table_name = recommendation_event)]
+pub struct RecommendationEvent {
+  pub id: Uuid,
+  pub profile_id: Uuid,
+  pub media_id: Uuid,
+  pub kind: String,
+  pub created_at: DateTime<Utc>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = recommendation_event)]
+pub struct NewRecommendationEvent<'a> {
+  pub profile_id: Uuid,
+  pub media_id: Uuid,
+  pub kind: &'a str,
+}
+
+// --- Genres ---
+#[derive(Queryable, Selectable, Identifiable, Debug)]
+#[diesel(table_name = genre)]
+pub struct Genre {
+  pub id: Uuid,
+  pub name: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = genre)]
+pub struct NewGenre<'a> {
+  pub name: &'a str,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(primary_key(media_id, genre_id))]
+#[diesel(belongs_to(Media))]
+#[diesel(belongs_to(Genre))]
+#[diesel(table_name = media_genre)]
+pub struct MediaGenre {
+  pub media_id: Uuid,
+  pub genre_id: Uuid,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = media_genre)]
+pub struct NewMediaGenre {
+  pub media_id: Uuid,
+  pub genre_id: Uuid,
+}
+
+// --- People and credits ---
+#[derive(Queryable, Selectable, Identifiable, Debug)]
+#[diesel(table_name = person)]
+pub struct Person {
+  pub id: Uuid,
+  pub display_name: String,
+  pub given_name: Option<String>,
+  pub family_name: Option<String>,
+  pub birth_place: Option<String>,
+  pub biography: Option<String>,
+  pub birth_date: Option<NaiveDate>,
+  pub death_date: Option<NaiveDate>,
+  pub profile_picture_url: Option<String>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = person)]
+pub struct NewPerson<'a> {
+  pub display_name: &'a str,
+  pub given_name: Option<&'a str>,
+  pub family_name: Option<&'a str>,
+  pub birth_place: Option<&'a str>,
+  pub biography: Option<&'a str>,
+  pub birth_date: Option<NaiveDate>,
+  pub death_date: Option<NaiveDate>,
+  pub profile_picture_url: Option<&'a str>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(belongs_to(Person))]
+#[diesel(table_name = person_external_ids)]
+pub struct PersonExternalId {
+  pub id: Uuid,
+  pub person_id: Uuid,
+  pub provider: String,
+  pub value: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = person_external_ids)]
+pub struct NewPersonExternalId<'a> {
+  pub person_id: Uuid,
+  pub provider: &'a str,
+  pub value: &'a str,
+}
+
+/// One person's involvement in a title. `roles` holds `CreditRole` values
+/// from `dionysus_metadata_model` (e.g. `ACTOR`, `DIRECTOR`).
+#[derive(Queryable, Selectable, Identifiable, Associations, Debug)]
+#[diesel(belongs_to(Media))]
+#[diesel(belongs_to(Person))]
+#[diesel(table_name = media_credit)]
+pub struct MediaCredit {
+  pub id: Uuid,
+  pub media_id: Uuid,
+  pub person_id: Uuid,
+  pub roles: Vec<String>,
+  pub characters: Vec<String>,
+  pub billing_order: i32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = media_credit)]
+pub struct NewMediaCredit {
+  pub media_id: Uuid,
+  pub person_id: Uuid,
+  pub roles: Vec<String>,
+  pub characters: Vec<String>,
+  pub billing_order: i32,
 }

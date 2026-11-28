@@ -70,10 +70,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let mut packages = Vec::new();
   for entry in fs::read_dir(&out_dir)? {
     let path = entry?.path();
-    if path.extension().is_some_and(|e| e == "rs") {
-      if let Some(stem) = path.file_stem() {
-        packages.push(stem.to_string_lossy().into_owned());
-      }
+    if path.extension().is_some_and(|e| e == "rs")
+      && let Some(stem) = path.file_stem()
+    {
+      packages.push(stem.to_string_lossy().into_owned());
     }
   }
   packages.sort();

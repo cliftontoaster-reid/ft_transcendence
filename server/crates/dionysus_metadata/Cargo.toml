@@ -10,8 +10,8 @@ dionysus_db = { version = "0.1.0", path = "../dionysus_db" }
 dionysus_metadata_model = { version = "0.1.0", path = "../dionysus_metadata_model" }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 thiserror = "2"
-tokio = { version = "1.54.1", features = ["fs", "rt", "sync"] }
-tracing = "0.1.44"
+tokio = { version = "1.54.1", features = ["fs", "full", "rt", "sync"] }
+tracing = { version = "0.1.44", features = ["async-await"] }
 url = "2"
 uuid = "1"
 

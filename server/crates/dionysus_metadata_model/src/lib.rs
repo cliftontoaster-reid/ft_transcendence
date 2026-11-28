@@ -140,6 +140,51 @@ pub enum CreditRole {
   SpecialThanks,
 }
 
+impl CreditRole {
+  /// Wire value used in `media_credit.roles` and the plugin ABI
+  /// (`SCREAMING_SNAKE_CASE`, with `SELF` for the self-appearance role).
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      Self::Actor => "ACTOR",
+      Self::VoiceActor => "VOICE_ACTOR",
+      Self::Cameo => "CAMEO",
+      Self::StuntPerformer => "STUNT_PERFORMER",
+      Self::Director => "DIRECTOR",
+      Self::AssistantDirector => "ASSISTANT_DIRECTOR",
+      Self::Writer => "WRITER",
+      Self::ScreenplayWriter => "SCREENPLAY_WRITER",
+      Self::StoryWriter => "STORY_WRITER",
+      Self::Producer => "PRODUCER",
+      Self::ExecutiveProducer => "EXECUTIVE_PRODUCER",
+      Self::CoProducer => "CO_PRODUCER",
+      Self::LineProducer => "LINE_PRODUCER",
+      Self::CastingDirector => "CASTING_DIRECTOR",
+      Self::Cinematographer => "CINEMATOGRAPHER",
+      Self::Editor => "EDITOR",
+      Self::Colorist => "COLORIST",
+      Self::ProductionDesigner => "PRODUCTION_DESIGNER",
+      Self::ArtDirector => "ART_DIRECTOR",
+      Self::SetDecorator => "SET_DECORATOR",
+      Self::CostumeDesigner => "COSTUME_DESIGNER",
+      Self::MakeupArtist => "MAKEUP_ARTIST",
+      Self::HairStylist => "HAIR_STYLIST",
+      Self::Composer => "COMPOSER",
+      Self::MusicSupervisor => "MUSIC_SUPERVISOR",
+      Self::SoundDesigner => "SOUND_DESIGNER",
+      Self::SoundMixer => "SOUND_MIXER",
+      Self::SoundEditor => "SOUND_EDITOR",
+      Self::VisualEffectsArtist => "VISUAL_EFFECTS_ARTIST",
+      Self::SpecialEffectsArtist => "SPECIAL_EFFECTS_ARTIST",
+      Self::Choreographer => "CHOREOGRAPHER",
+      Self::Coordinator => "COORDINATOR",
+      Self::Narrator => "NARRATOR",
+      Self::ArchiveFootage => "ARCHIVE_FOOTAGE",
+      Self::SelfRole => "SELF",
+      Self::SpecialThanks => "SPECIAL_THANKS",
+    }
+  }
+}
+
 /// One person's involvement, following the `person.proto` / `credit.proto`
 /// conventions (`external_ids`, `roles`, `characters`, `billing_order`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -165,6 +210,9 @@ pub struct MediaMetadata {
   pub images: Vec<RemoteImage>,
   pub credits: Vec<Credit>,
   pub external_ids: Vec<ExternalId>,
+  /// Genre names, used for cold-start suggestions and genre filters.
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub genres: Vec<String>,
 }
 
 /// What a provider is (both native and WASM): identity + contract version.
@@ -227,9 +275,16 @@ mod tests {
         billing: 1,
       }],
       external_ids: vec![
-        ExternalId { provider: "imdb".into(), value: "tt0133093".into() },
-        ExternalId { provider: "tmdb".into(), value: "603".into() },
+        ExternalId {
+          provider: "imdb".into(),
+          value: "tt0133093".into(),
+        },
+        ExternalId {
+          provider: "tmdb".into(),
+          value: "603".into(),
+        },
       ],
+      genres: vec!["Action".into(), "Science Fiction".into()],
     };
 
     let bytes = rmp_serde::to_vec_named(&metadata).expect("encode");
@@ -269,6 +324,9 @@ mod tests {
 
   #[test]
   fn descriptor_stamps_model_version() {
-    assert_eq!(Descriptor::new("tmdb", "TMDB", "0.1.0").model_version, MODEL_VERSION);
+    assert_eq!(
+      Descriptor::new("tmdb", "TMDB", "0.1.0").model_version,
+      MODEL_VERSION
+    );
   }
 }
